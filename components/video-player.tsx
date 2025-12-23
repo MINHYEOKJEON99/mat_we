@@ -1,7 +1,5 @@
 "use client"
 
-import type React from "react"
-
 import { useEffect, useRef } from "react"
 
 interface VideoPlayerProps {
@@ -24,6 +22,7 @@ export function VideoPlayer({ playbackId, title }: VideoPlayerProps) {
 
   return (
     <div ref={containerRef} className="w-full rounded-lg overflow-hidden bg-black">
+      {/* @ts-expect-error - mux-player is a custom element loaded dynamically */}
       <mux-player
         playback-id={playbackId}
         metadata-video-title={title}
@@ -32,19 +31,4 @@ export function VideoPlayer({ playbackId, title }: VideoPlayerProps) {
       />
     </div>
   )
-}
-
-// Add TypeScript declaration for mux-player
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      "mux-player": {
-        "playback-id": string
-        "metadata-video-title"?: string
-        "accent-color"?: string
-        style?: React.CSSProperties
-        children?: React.ReactNode
-      }
-    }
-  }
 }

@@ -4,12 +4,27 @@ export type CourseLevel = "beginner" | "intermediate" | "advanced"
 
 export type PTSessionStatus = "pending" | "confirmed" | "completed" | "cancelled"
 
+// 관심 운동 종목 (추후 확장 가능)
+export type SportType = "jiujitsu" | "wrestling" | "judo" | "mma"
+
+export const SPORT_LABELS: Record<SportType, string> = {
+  jiujitsu: "주짓수",
+  wrestling: "레슬링",
+  judo: "유도",
+  mma: "종합격투기",
+}
+
+// 현재 지원하는 종목 (추후 확장 시 여기에 추가)
+export const AVAILABLE_SPORTS: SportType[] = ["jiujitsu"]
+
 export interface Profile {
   id: string
   display_name: string
   bio: string | null
   role: UserRole
   avatar_url: string | null
+  interested_sports: SportType[]
+  is_profile_complete: boolean
   created_at: string
   updated_at: string
 }
