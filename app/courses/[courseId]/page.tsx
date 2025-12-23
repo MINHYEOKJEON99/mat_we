@@ -1,21 +1,21 @@
-import { createClient } from "@/lib/server"
-import { redirect, notFound } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import Link from "next/link"
-import { EnrollButton } from "@/components/enroll-button"
+import { createClient } from "@/lib/server";
+import { redirect, notFound } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { EnrollButton } from "@/components/enroll-button";
 
 export default async function CourseDetailPage({ params }: { params: Promise<{ courseId: string }> }) {
-  const { courseId } = await params
-  const supabase = await createClient()
+  const { courseId } = await params;
+  const supabase = await createClient();
 
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/auth/login")
+    redirect("/auth/login");
   }
 
   // Get course details
@@ -23,10 +23,10 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
     .from("courses")
     .select("*, instructor:profiles!courses_instructor_id_fkey(*)")
     .eq("id", courseId)
-    .single()
+    .single();
 
   if (!course) {
-    notFound()
+    notFound();
   }
 
   // Check if already enrolled
@@ -35,32 +35,21 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
     .select("*")
     .eq("student_id", user.id)
     .eq("course_id", courseId)
-    .single()
+    .single();
 
   // Get course videos
   const { data: videos } = await supabase
     .from("course_videos")
     .select("*")
     .eq("course_id", courseId)
-    .order("order_index", { ascending: true })
+    .order("order_index", { ascending: true });
 
   if (enrollment) {
-    redirect(`/student/courses/${courseId}`)
+    redirect(`/student/courses/${courseId}`);
   }
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/dashboard" className="text-2xl font-bold">
-            Mat We
-          </Link>
-          <Button asChild variant="ghost">
-            <Link href="/courses">← 강의 목록</Link>
-          </Button>
-        </div>
-      </header>
-
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="grid gap-8 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-6">
@@ -145,5 +134,5 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
         </div>
       </main>
     </div>
-  )
+  );
 }

@@ -15,10 +15,41 @@ import type { Provider } from "@supabase/supabase-js"
 
 const loginSchema = z.object({
   email: z.string().email("올바른 이메일 형식이 아닙니다"),
-  password: z.string().min(6, "비밀번호는 최소 6자 이상이어야 합니다"),
+  password: z.string().min(1, "비밀번호를 입력해주세요"),
 })
 
 type LoginFormData = z.infer<typeof loginSchema>
+
+// Supabase 에러 메시지 한글 변환
+function getErrorMessage(error: unknown): string {
+  if (!(error instanceof Error)) return "로그인 중 오류가 발생했습니다"
+
+  const message = error.message.toLowerCase()
+
+  if (message.includes("invalid login credentials")) {
+    return "이메일 또는 비밀번호가 올바르지 않습니다"
+  }
+  if (message.includes("email not confirmed")) {
+    return "이메일 인증이 완료되지 않았습니다. 이메일을 확인해주세요"
+  }
+  if (message.includes("user not found")) {
+    return "등록되지 않은 이메일입니다"
+  }
+  if (message.includes("too many requests")) {
+    return "요청이 너무 많습니다. 잠시 후 다시 시도해주세요"
+  }
+  if (message.includes("network")) {
+    return "네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요"
+  }
+  if (message.includes("invalid email")) {
+    return "올바른 이메일 형식이 아닙니다"
+  }
+  if (message.includes("password")) {
+    return "비밀번호가 올바르지 않습니다"
+  }
+
+  return "로그인 중 오류가 발생했습니다"
+}
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
@@ -45,10 +76,10 @@ export default function LoginPage() {
         password: data.password,
       })
       if (error) throw error
-      router.push("/dashboard")
+      router.push("/")
       router.refresh()
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "로그인 중 오류가 발생했습니다")
+      setError(getErrorMessage(error))
     } finally {
       setIsLoading(false)
     }
@@ -68,7 +99,7 @@ export default function LoginPage() {
       })
       if (error) throw error
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "소셜 로그인 중 오류가 발생했습니다")
+      setError(getErrorMessage(error))
       setSocialLoading(null)
     }
   }

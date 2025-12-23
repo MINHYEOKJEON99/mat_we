@@ -1,53 +1,42 @@
-import { createClient } from "@/lib/server"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import Link from "next/link"
-import { PlusCircle, MessageCircle, Heart } from "lucide-react"
-import { redirect } from "next/navigation"
+import { createClient } from "@/lib/server";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
+import { PlusCircle, MessageCircle, Heart } from "lucide-react";
+import { redirect } from "next/navigation";
 
 export default async function CommunityPage() {
-  const supabase = await createClient()
+  const supabase = await createClient();
 
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/auth/login")
+    redirect("/auth/login");
   }
 
   // Get all community posts with author info
   const { data: posts } = await supabase
     .from("community_posts")
     .select("*, author:profiles!community_posts_author_id_fkey(*)")
-    .order("created_at", { ascending: false })
+    .order("created_at", { ascending: false });
 
   // Get user's liked posts
-  const { data: userLikes } = await supabase.from("post_likes").select("post_id").eq("user_id", user.id)
+  const { data: userLikes } = await supabase.from("post_likes").select("post_id").eq("user_id", user.id);
 
-  const likedPostIds = new Set(userLikes?.map((like) => like.post_id) || [])
+  const likedPostIds = new Set(userLikes?.map((like) => like.post_id) || []);
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/dashboard" className="text-2xl font-bold">
-            Mat We
-          </Link>
-          <nav className="flex items-center gap-4">
-            <Link href="/dashboard">
-              <Button variant="ghost">대시보드</Button>
+      <header className="w-full">
+        <div className="ml-auto px-4 py-4 flex items-center justify-end">
+          <Button asChild>
+            <Link href="/community/new">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              글쓰기
             </Link>
-            <Link href="/courses">
-              <Button variant="ghost">강의</Button>
-            </Link>
-            <Button asChild>
-              <Link href="/community/new">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                글쓰기
-              </Link>
-            </Button>
-          </nav>
+          </Button>
         </div>
       </header>
 
@@ -118,5 +107,5 @@ export default async function CommunityPage() {
         )}
       </main>
     </div>
-  )
+  );
 }

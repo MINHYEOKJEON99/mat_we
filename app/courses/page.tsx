@@ -1,60 +1,31 @@
-import { createClient } from "@/lib/server"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import Link from "next/link"
+import { createClient } from "@/lib/server";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 
 export default async function CoursesPage() {
-  const supabase = await createClient()
+  const supabase = await createClient();
 
   // Get all courses with instructor info
   const { data: courses } = await supabase
     .from("courses")
     .select("*, instructor:profiles!courses_instructor_id_fkey(*)")
-    .order("created_at", { ascending: false })
+    .order("created_at", { ascending: false });
 
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getUser();
 
   // If user is logged in, get their enrollments
-  let enrolledCourseIds: string[] = []
+  let enrolledCourseIds: string[] = [];
   if (user) {
-    const { data: enrollments } = await supabase.from("enrollments").select("course_id").eq("student_id", user.id)
-    enrolledCourseIds = enrollments?.map((e) => e.course_id) || []
+    const { data: enrollments } = await supabase.from("enrollments").select("course_id").eq("student_id", user.id);
+    enrolledCourseIds = enrollments?.map((e) => e.course_id) || [];
   }
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="text-2xl font-bold">
-            Mat We
-          </Link>
-          <nav className="flex items-center gap-4">
-            {user ? (
-              <>
-                <Link href="/dashboard">
-                  <Button variant="ghost">대시보드</Button>
-                </Link>
-                <Link href="/community">
-                  <Button variant="ghost">커뮤니티</Button>
-                </Link>
-              </>
-            ) : (
-              <>
-                <Link href="/auth/login">
-                  <Button variant="outline">로그인</Button>
-                </Link>
-                <Link href="/auth/signup">
-                  <Button>회원가입</Button>
-                </Link>
-              </>
-            )}
-          </nav>
-        </div>
-      </header>
-
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">주짓수 강의</h1>
@@ -71,7 +42,7 @@ export default async function CoursesPage() {
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {courses.map((course) => {
-              const isEnrolled = enrolledCourseIds.includes(course.id)
+              const isEnrolled = enrolledCourseIds.includes(course.id);
               return (
                 <Card key={course.id} className="flex flex-col">
                   <CardHeader>
@@ -111,11 +82,11 @@ export default async function CoursesPage() {
                     </div>
                   </CardContent>
                 </Card>
-              )
+              );
             })}
           </div>
         )}
       </main>
     </div>
-  )
+  );
 }

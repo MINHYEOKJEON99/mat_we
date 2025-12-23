@@ -68,7 +68,7 @@ export default function CompleteProfilePage() {
         .single()
 
       if (profile?.is_profile_complete) {
-        router.push("/dashboard")
+        router.push("/")
         return
       }
 
@@ -139,6 +139,7 @@ export default function CompleteProfilePage() {
         .from("profiles")
         .upsert({
           id: user.id,
+          email: user.email,
           display_name: data.displayName,
           role: data.role as UserRole,
           avatar_url: finalAvatarUrl,
@@ -149,7 +150,7 @@ export default function CompleteProfilePage() {
 
       if (profileError) throw profileError
 
-      router.push("/dashboard")
+      router.push("/")
       router.refresh()
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "프로필 완성 중 오류가 발생했습니다")
@@ -208,6 +209,21 @@ export default function CompleteProfilePage() {
                   <p className="text-sm text-muted-foreground">프로필 사진 (선택)</p>
                 </div>
 
+                {/* Email (소셜 로그인 이메일 - 수정 불가) */}
+                <div className="grid gap-2">
+                  <Label htmlFor="email">이메일</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={userEmail}
+                    disabled
+                    className="bg-muted"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    소셜 로그인 계정의 이메일입니다
+                  </p>
+                </div>
+
                 {/* Display Name */}
                 <div className="grid gap-2">
                   <Label htmlFor="displayName">닉네임</Label>
@@ -234,28 +250,34 @@ export default function CompleteProfilePage() {
                         onValueChange={field.onChange}
                         className="grid gap-2"
                       >
-                        <div className="flex items-start space-x-3 rounded-lg border p-4">
+                        <label
+                          htmlFor="student"
+                          className={`flex items-start space-x-3 rounded-lg border p-4 cursor-pointer transition-colors hover:bg-muted/50 ${
+                            field.value === "student" ? "border-primary bg-primary/5" : ""
+                          }`}
+                        >
                           <RadioGroupItem value="student" id="student" className="mt-1" />
                           <div className="grid gap-1">
-                            <Label htmlFor="student" className="font-medium cursor-pointer">
-                              수강생
-                            </Label>
+                            <span className="font-medium">수강생</span>
                             <p className="text-sm text-muted-foreground">
                               강의를 수강하고 PT를 신청합니다
                             </p>
                           </div>
-                        </div>
-                        <div className="flex items-start space-x-3 rounded-lg border p-4">
+                        </label>
+                        <label
+                          htmlFor="instructor"
+                          className={`flex items-start space-x-3 rounded-lg border p-4 cursor-pointer transition-colors hover:bg-muted/50 ${
+                            field.value === "instructor" ? "border-primary bg-primary/5" : ""
+                          }`}
+                        >
                           <RadioGroupItem value="instructor" id="instructor" className="mt-1" />
                           <div className="grid gap-1">
-                            <Label htmlFor="instructor" className="font-medium cursor-pointer">
-                              강사
-                            </Label>
+                            <span className="font-medium">강사</span>
                             <p className="text-sm text-muted-foreground">
                               강의를 공유하고 PT를 제공합니다
                             </p>
                           </div>
-                        </div>
+                        </label>
                       </RadioGroup>
                     )}
                   />

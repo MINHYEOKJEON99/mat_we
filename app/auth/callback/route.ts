@@ -4,7 +4,7 @@ import { NextResponse } from "next/server"
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get("code")
-  const next = searchParams.get("next") ?? "/dashboard"
+  const next = searchParams.get("next") ?? "/"
 
   if (code) {
     const supabase = await createClient()
@@ -20,9 +20,17 @@ export async function GET(request: Request) {
         // Check if profile exists and is complete
         const { data: profile } = await supabase
           .from("profiles")
-          .select("is_profile_complete")
+          .select("is_profile_complete, email")
           .eq("id", user.id)
           .single()
+
+        // 프로필에 email이 없으면 저장
+        if (profile && !profile.email && user.email) {
+          await supabase
+            .from("profiles")
+            .update({ email: user.email })
+            .eq("id", user.id)
+        }
 
         // If no profile or profile is incomplete, redirect to complete-profile
         if (!profile || !profile.is_profile_complete) {

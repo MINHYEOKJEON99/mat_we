@@ -3,6 +3,7 @@
 
 -- 1. Add new columns to profiles table
 ALTER TABLE profiles
+ADD COLUMN IF NOT EXISTS email text UNIQUE,
 ADD COLUMN IF NOT EXISTS interested_sports text[] DEFAULT ARRAY['jiujitsu'],
 ADD COLUMN IF NOT EXISTS is_profile_complete boolean DEFAULT false;
 
@@ -56,9 +57,10 @@ USING (
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, display_name, role, avatar_url, interested_sports, is_profile_complete)
+  INSERT INTO public.profiles (id, email, display_name, role, avatar_url, interested_sports, is_profile_complete)
   VALUES (
     NEW.id,
+    NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'display_name', NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name'),
     COALESCE(NEW.raw_user_meta_data->>'role', 'student'),
     NEW.raw_user_meta_data->>'avatar_url',

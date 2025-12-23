@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Geist, Geist_Mono, Inter } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { ThemeProvider } from "@/components/theme-provider"
+import { Header } from "@/components/header"
 import "./globals.css"
 
 const _geist = Geist({ subsets: ["latin"] })
@@ -44,7 +45,10 @@ export default function RootLayout({
     <html lang="ko" suppressHydrationWarning>
       <body className={`${_inter.variable} font-sans antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          {children}
+          <div className="min-h-screen flex flex-col">
+            <Header />
+            <main className="flex-1">{children}</main>
+          </div>
         </ThemeProvider>
         <Analytics />
       </body>

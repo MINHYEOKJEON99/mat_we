@@ -19,6 +19,7 @@ export const AVAILABLE_SPORTS: SportType[] = ["jiujitsu"]
 
 export interface Profile {
   id: string
+  email: string | null
   display_name: string
   bio: string | null
   role: UserRole
