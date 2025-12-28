@@ -16,27 +16,31 @@ import { useState } from "react"
 import { createClient } from "@/lib/client"
 import { useRouter } from "next/navigation"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
+import type { Profile } from "@/lib/database"
 
 interface HeaderClientProps {
   initialUser: SupabaseUser | null
+  initialProfile: Profile | null
 }
 
-export function HeaderClient({ initialUser }: HeaderClientProps) {
+export function HeaderClient({ initialUser, initialProfile }: HeaderClientProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [user, setUser] = useState<SupabaseUser | null>(initialUser)
+  const [profile, setProfile] = useState<Profile | null>(initialProfile)
   const router = useRouter()
 
   const handleLogout = async () => {
     const supabase = createClient()
     await supabase.auth.signOut()
     setUser(null)
+    setProfile(null)
     router.push("/")
     router.refresh()
   }
 
-  // 사용자 아바타 URL 또는 이니셜
-  const avatarUrl = user?.user_metadata?.avatar_url
-  const userInitial = user?.email?.charAt(0).toUpperCase() || "U"
+  // 프로필 테이블의 avatar_url 우선 사용, 없으면 OAuth metadata 사용
+  const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url
+  const userInitial = profile?.display_name?.charAt(0) || user?.email?.charAt(0).toUpperCase() || "U"
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

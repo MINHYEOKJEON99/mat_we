@@ -126,6 +126,7 @@ export default function LoginPage() {
                   <GoogleIcon />
                   {socialLoading === "google" ? "로그인 중..." : "Google로 계속하기"}
                 </Button>
+                {/* TODO: Kakao 로그인 - Supabase 설정 후 활성화
                 <Button
                   type="button"
                   variant="outline"
@@ -136,6 +137,8 @@ export default function LoginPage() {
                   <KakaoIcon />
                   {socialLoading === "kakao" ? "로그인 중..." : "카카오로 계속하기"}
                 </Button>
+                */}
+                {/* TODO: Naver 로그인 - Supabase 설정 후 활성화
                 <Button
                   type="button"
                   variant="outline"
@@ -146,6 +149,7 @@ export default function LoginPage() {
                   <NaverIcon />
                   {socialLoading === ("naver" as Provider) ? "로그인 중..." : "네이버로 계속하기"}
                 </Button>
+                */}
               </div>
 
               {/* Divider */}
