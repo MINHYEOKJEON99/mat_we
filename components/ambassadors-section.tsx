@@ -1,8 +1,10 @@
+import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
 const ambassadors = [
   {
+    id: "ambassador-1",
     name: "김태현",
     belt: "블랙벨트 3단",
     specialty: "스포츠 주짓수",
@@ -10,6 +12,7 @@ const ambassadors = [
     stats: "200+ 수강생 · 15년 경력",
   },
   {
+    id: "ambassador-2",
     name: "이서연",
     belt: "블랙벨트 2단",
     specialty: "셀프 디펜스",
@@ -17,6 +20,7 @@ const ambassadors = [
     stats: "150+ 수강생 · 12년 경력",
   },
   {
+    id: "ambassador-3",
     name: "박준호",
     belt: "블랙벨트 4단",
     specialty: "컴피티션 트레이닝",
@@ -42,15 +46,17 @@ export function AmbassadorsSection() {
         <div className="grid md:grid-cols-3 gap-8">
           {ambassadors.map((ambassador, index) => (
             <Link
-              key={index}
+              key={ambassador.id}
               href={`/instructors/${index + 1}`}
               className="group relative overflow-hidden rounded-xl bg-card border"
             >
-              <div className="aspect-[3/4] overflow-hidden">
-                <img
-                  src={ambassador.image || "/placeholder.svg"}
+              <div className="aspect-[3/4] overflow-hidden relative">
+                <Image
+                  src={ambassador.image}
                   alt={ambassador.name}
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  fill
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  sizes="(max-width: 768px) 100vw, 33vw"
                 />
               </div>
               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />

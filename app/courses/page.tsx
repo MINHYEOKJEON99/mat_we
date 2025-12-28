@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { createClient } from "@/lib/server";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,11 +8,32 @@ import Link from "next/link";
 export default async function CoursesPage() {
   const supabase = await createClient();
 
-  // Get all courses with instructor info
+  // Get all courses with instructor info (optimized fields)
   const { data: courses } = await supabase
     .from("courses")
-    .select("*, instructor:profiles!courses_instructor_id_fkey(*)")
-    .order("created_at", { ascending: false });
+    .select(`
+      id,
+      title,
+      description,
+      thumbnail_url,
+      price,
+      level,
+      created_at,
+      instructor:profiles!courses_instructor_id_fkey (
+        id,
+        display_name
+      )
+    `)
+    .order("created_at", { ascending: false }) as { data: Array<{
+      id: string
+      title: string
+      description: string | null
+      thumbnail_url: string | null
+      price: number
+      level: string
+      created_at: string
+      instructor: { id: string; display_name: string } | null
+    }> | null };
 
   const {
     data: { user },
@@ -47,11 +69,15 @@ export default async function CoursesPage() {
                 <Card key={course.id} className="flex flex-col">
                   <CardHeader>
                     {course.thumbnail_url && (
-                      <img
-                        src={course.thumbnail_url || "/placeholder.svg"}
-                        alt={course.title}
-                        className="w-full h-48 object-cover rounded-lg mb-4"
-                      />
+                      <div className="relative w-full h-48 mb-4">
+                        <Image
+                          src={course.thumbnail_url}
+                          alt={course.title}
+                          fill
+                          className="object-cover rounded-lg"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        />
+                      </div>
                     )}
                     <div className="flex items-start justify-between gap-2">
                       <CardTitle className="line-clamp-1">{course.title}</CardTitle>

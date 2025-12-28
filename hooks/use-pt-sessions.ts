@@ -128,7 +128,7 @@ export function useChatMessages(sessionId: string | undefined) {
       })[]
     },
     enabled: !!sessionId,
-    refetchInterval: 5000, // 5초마다 새로고침 (실시간 채팅용)
+    // refetchInterval 제거 - ChatInterface에서 Supabase Realtime 사용 중
   })
 }
 
