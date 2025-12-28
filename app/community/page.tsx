@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { createClient } from "@/lib/server";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,11 +17,32 @@ export default async function CommunityPage() {
     redirect("/auth/login");
   }
 
-  // Get all community posts with author info
+  // Get all community posts with author info (optimized fields)
   const { data: posts } = await supabase
     .from("community_posts")
-    .select("*, author:profiles!community_posts_author_id_fkey(*)")
-    .order("created_at", { ascending: false });
+    .select(`
+      id,
+      title,
+      content,
+      image_url,
+      likes_count,
+      comments_count,
+      created_at,
+      author:profiles!community_posts_author_id_fkey (
+        id,
+        display_name
+      )
+    `)
+    .order("created_at", { ascending: false }) as { data: Array<{
+      id: string
+      title: string
+      content: string
+      image_url: string | null
+      likes_count: number
+      comments_count: number
+      created_at: string
+      author: { id: string; display_name: string } | null
+    }> | null };
 
   // Get user's liked posts
   const { data: userLikes } = await supabase.from("post_likes").select("post_id").eq("user_id", user.id);
@@ -70,11 +92,15 @@ export default async function CommunityPage() {
                         <CardDescription className="line-clamp-2">{post.content}</CardDescription>
                       </div>
                       {post.image_url && (
-                        <img
-                          src={post.image_url || "/placeholder.svg"}
-                          alt={post.title}
-                          className="w-24 h-24 object-cover rounded-lg flex-shrink-0"
-                        />
+                        <div className="relative w-24 h-24 flex-shrink-0">
+                          <Image
+                            src={post.image_url}
+                            alt={post.title}
+                            fill
+                            className="object-cover rounded-lg"
+                            sizes="96px"
+                          />
+                        </div>
                       )}
                     </div>
                   </CardHeader>

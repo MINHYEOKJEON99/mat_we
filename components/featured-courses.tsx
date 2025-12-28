@@ -1,3 +1,4 @@
+import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -60,11 +61,13 @@ export function FeaturedCourses() {
               href={`/courses/${course.id}`}
               className="group bg-card border rounded-xl overflow-hidden hover:shadow-lg transition-shadow"
             >
-              <div className="aspect-video overflow-hidden bg-muted">
-                <img
-                  src={course.thumbnail || "/placeholder.svg"}
+              <div className="aspect-video overflow-hidden bg-muted relative">
+                <Image
+                  src={course.thumbnail}
                   alt={course.title}
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  fill
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  sizes="(max-width: 768px) 100vw, 33vw"
                 />
               </div>
               <div className="p-6 space-y-4">
