@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Menu, LayoutDashboard, User, LogOut } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { createClient } from "@/lib/client"
 import { useRouter } from "next/navigation"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
@@ -28,6 +28,33 @@ export function HeaderClient({ initialUser, initialProfile }: HeaderClientProps)
   const [user, setUser] = useState<SupabaseUser | null>(initialUser)
   const [profile, setProfile] = useState<Profile | null>(initialProfile)
   const router = useRouter()
+
+  // 인증 상태 변화 감지
+  useEffect(() => {
+    const supabase = createClient()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_IN" && session?.user) {
+        setUser(session.user)
+        // 프로필 정보 가져오기
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", session.user.id)
+          .single<Profile>()
+        setProfile(profileData)
+      } else if (event === "SIGNED_OUT") {
+        setUser(null)
+        setProfile(null)
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [])
 
   const handleLogout = async () => {
     const supabase = createClient()
