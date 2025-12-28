@@ -29,6 +29,12 @@ export function HeaderClient({ initialUser, initialProfile }: HeaderClientProps)
   const [profile, setProfile] = useState<Profile | null>(initialProfile)
   const router = useRouter()
 
+  // 서버에서 전달된 초기값이 변경되면 상태 동기화
+  useEffect(() => {
+    setUser(initialUser)
+    setProfile(initialProfile)
+  }, [initialUser, initialProfile])
+
   // 인증 상태 변화 감지
   useEffect(() => {
     const supabase = createClient()

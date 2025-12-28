@@ -15,13 +15,14 @@ export function useCurrentProfile() {
   return useQuery({
     queryKey: profileKeys.current(),
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return null
+      // getUser() 대신 getSession() 사용 (React 19 호환성 문제 우회)
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user) return null
 
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
-        .eq("id", user.id)
+        .eq("id", session.user.id)
         .single<Profile>()
 
       if (error) throw error
