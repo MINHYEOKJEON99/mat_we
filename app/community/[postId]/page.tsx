@@ -37,12 +37,6 @@ export default async function PostDetailPage({ params }: { params: Promise<{ pos
     .eq("user_id", user.id)
     .single()
 
-  // Get comments
-  const { data: comments } = await supabase
-    .from("post_comments")
-    .select("*, author:profiles!post_comments_author_id_fkey(*)")
-    .eq("post_id", postId)
-    .order("created_at", { ascending: true })
 
   return (
     <div className="min-h-screen bg-background">
@@ -96,7 +90,7 @@ export default async function PostDetailPage({ params }: { params: Promise<{ pos
         </Card>
 
         <div className="mt-8">
-          <CommentSection postId={postId} userId={user.id} initialComments={comments || []} />
+          <CommentSection postId={postId} userId={user.id} />
         </div>
       </main>
     </div>

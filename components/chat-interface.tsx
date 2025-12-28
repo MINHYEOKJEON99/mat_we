@@ -1,30 +1,32 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect, useRef } from "react"
 import { createClient } from "@/lib/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import type { ChatMessage } from "@/lib/database"
 import { Send } from "lucide-react"
+import { useChatMessages, useSendMessage } from "@/hooks"
+import { useQueryClient } from "@tanstack/react-query"
+import { ptSessionKeys } from "@/hooks/use-pt-sessions"
 
 interface ChatInterfaceProps {
   sessionId: string
   userId: string
-  initialMessages: ChatMessage[]
 }
 
-export function ChatInterface({ sessionId, userId, initialMessages }: ChatInterfaceProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
+export function ChatInterface({ sessionId, userId }: ChatInterfaceProps) {
   const [newMessage, setNewMessage] = useState("")
-  const [isSending, setIsSending] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const queryClient = useQueryClient()
   const supabase = createClient()
 
+  const { data: messages = [] } = useChatMessages(sessionId)
+  const sendMessage = useSendMessage()
+
+  // Realtime 구독으로 즉시 업데이트
   useEffect(() => {
-    // Subscribe to new messages
     const channel = supabase
       .channel(`chat:${sessionId}`)
       .on(
@@ -35,17 +37,9 @@ export function ChatInterface({ sessionId, userId, initialMessages }: ChatInterf
           table: "chat_messages",
           filter: `pt_session_id=eq.${sessionId}`,
         },
-        async (payload) => {
-          // Fetch the full message with sender info
-          const { data } = await supabase
-            .from("chat_messages")
-            .select("*, sender:profiles!chat_messages_sender_id_fkey(*)")
-            .eq("id", payload.new.id)
-            .single()
-
-          if (data) {
-            setMessages((prev) => [...prev, data])
-          }
+        () => {
+          // 새 메시지가 오면 쿼리 무효화
+          queryClient.invalidateQueries({ queryKey: ptSessionKeys.messages(sessionId) })
         },
       )
       .subscribe()
@@ -53,10 +47,10 @@ export function ChatInterface({ sessionId, userId, initialMessages }: ChatInterf
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [sessionId, supabase])
+  }, [sessionId, supabase, queryClient])
 
+  // 메시지 변경 시 스크롤
   useEffect(() => {
-    // Scroll to bottom when messages change
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
@@ -64,22 +58,17 @@ export function ChatInterface({ sessionId, userId, initialMessages }: ChatInterf
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newMessage.trim() || isSending) return
-
-    setIsSending(true)
+    if (!newMessage.trim() || sendMessage.isPending) return
 
     try {
-      await supabase.from("chat_messages").insert({
+      await sendMessage.mutateAsync({
         pt_session_id: sessionId,
         sender_id: userId,
         message: newMessage.trim(),
       })
-
       setNewMessage("")
     } catch (error) {
       console.error("Failed to send message:", error)
-    } finally {
-      setIsSending(false)
     }
   }
 
@@ -114,9 +103,9 @@ export function ChatInterface({ sessionId, userId, initialMessages }: ChatInterf
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           placeholder="메시지를 입력하세요..."
-          disabled={isSending}
+          disabled={sendMessage.isPending}
         />
-        <Button type="submit" size="icon" disabled={isSending || !newMessage.trim()}>
+        <Button type="submit" size="icon" disabled={sendMessage.isPending || !newMessage.trim()}>
           <Send className="h-4 w-4" />
         </Button>
       </form>

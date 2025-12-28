@@ -1,74 +1,56 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/client"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import type { PostComment } from "@/lib/database"
+import { usePostComments, useCreateComment, useDeleteComment } from "@/hooks"
 
 interface CommentSectionProps {
   postId: string
   userId: string
-  initialComments: PostComment[]
 }
 
-export function CommentSection({ postId, userId, initialComments }: CommentSectionProps) {
-  const [comments, setComments] = useState<PostComment[]>(initialComments)
+export function CommentSection({ postId, userId }: CommentSectionProps) {
   const [newComment, setNewComment] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const router = useRouter()
+
+  const { data: comments = [], isLoading: isLoadingComments } = usePostComments(postId)
+  const createComment = useCreateComment()
+  const deleteComment = useDeleteComment()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newComment.trim()) return
 
-    const supabase = createClient()
-    setIsLoading(true)
-    setError(null)
-
     try {
-      const { data, error } = await supabase
-        .from("post_comments")
-        .insert({
-          post_id: postId,
-          author_id: userId,
-          content: newComment.trim(),
-        })
-        .select("*, author:profiles!post_comments_author_id_fkey(*)")
-        .single()
-
-      if (error) throw error
-
-      setComments([...comments, data])
+      await createComment.mutateAsync({
+        post_id: postId,
+        author_id: userId,
+        content: newComment.trim(),
+      })
       setNewComment("")
-      router.refresh()
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "댓글 작성 중 오류가 발생했습니다")
-    } finally {
-      setIsLoading(false)
+    } catch (error) {
+      console.error("Failed to create comment:", error)
     }
   }
 
   const handleDelete = async (commentId: string) => {
     if (!confirm("정말로 이 댓글을 삭제하시겠습니까?")) return
 
-    const supabase = createClient()
-
     try {
-      const { error } = await supabase.from("post_comments").delete().eq("id", commentId)
-
-      if (error) throw error
-
-      setComments(comments.filter((c) => c.id !== commentId))
-      router.refresh()
+      await deleteComment.mutateAsync({ commentId, postId })
     } catch (error) {
       console.error("Failed to delete comment:", error)
     }
+  }
+
+  if (isLoadingComments) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">댓글 로딩 중...</p>
+      </div>
+    )
   }
 
   return (
@@ -85,9 +67,13 @@ export function CommentSection({ postId, userId, initialComments }: CommentSecti
               onChange={(e) => setNewComment(e.target.value)}
               rows={3}
             />
-            {error && <p className="text-sm text-red-500">{error}</p>}
-            <Button type="submit" disabled={isLoading || !newComment.trim()}>
-              {isLoading ? "작성 중..." : "댓글 작성"}
+            {createComment.error && (
+              <p className="text-sm text-red-500">
+                {createComment.error.message || "댓글 작성 중 오류가 발생했습니다"}
+              </p>
+            )}
+            <Button type="submit" disabled={createComment.isPending || !newComment.trim()}>
+              {createComment.isPending ? "작성 중..." : "댓글 작성"}
             </Button>
           </form>
         </CardContent>
@@ -111,7 +97,12 @@ export function CommentSection({ postId, userId, initialComments }: CommentSecti
                   </CardDescription>
                 </div>
                 {comment.author_id === userId && (
-                  <Button variant="ghost" size="sm" onClick={() => handleDelete(comment.id)}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(comment.id)}
+                    disabled={deleteComment.isPending}
+                  >
                     삭제
                   </Button>
                 )}

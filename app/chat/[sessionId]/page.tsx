@@ -38,12 +38,6 @@ export default async function ChatPage({ params }: { params: Promise<{ sessionId
   const isInstructor = session.instructor_id === user.id
   const otherUser = isInstructor ? session.student : session.instructor
 
-  // Get chat messages
-  const { data: messages } = await supabase
-    .from("chat_messages")
-    .select("*, sender:profiles!chat_messages_sender_id_fkey(*)")
-    .eq("pt_session_id", sessionId)
-    .order("created_at", { ascending: true })
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -88,7 +82,7 @@ export default async function ChatPage({ params }: { params: Promise<{ sessionId
                 </div>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col min-h-0">
-                <ChatInterface sessionId={sessionId} userId={user.id} initialMessages={messages || []} />
+                <ChatInterface sessionId={sessionId} userId={user.id} />
               </CardContent>
             </Card>
           </div>
