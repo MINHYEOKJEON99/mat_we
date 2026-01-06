@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Menu, LayoutDashboard, User, LogOut } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { createClient } from "@/lib/client"
 import { useRouter } from "next/navigation"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
@@ -29,6 +29,39 @@ export function HeaderClient({ initialUser, initialProfile }: HeaderClientProps)
   const [profile, setProfile] = useState<Profile | null>(initialProfile)
   const router = useRouter()
 
+  // 서버에서 전달된 초기값이 변경되면 상태 동기화
+  useEffect(() => {
+    setUser(initialUser)
+    setProfile(initialProfile)
+  }, [initialUser, initialProfile])
+
+  // 인증 상태 변화 감지
+  useEffect(() => {
+    const supabase = createClient()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_IN" && session?.user) {
+        setUser(session.user)
+        // 프로필 정보 가져오기
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", session.user.id)
+          .single<Profile>()
+        setProfile(profileData)
+      } else if (event === "SIGNED_OUT") {
+        setUser(null)
+        setProfile(null)
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [])
+
   const handleLogout = async () => {
     const supabase = createClient()
     await supabase.auth.signOut()
@@ -43,14 +76,14 @@ export function HeaderClient({ initialUser, initialProfile }: HeaderClientProps)
   const userInitial = profile?.display_name?.charAt(0) || user?.email?.charAt(0).toUpperCase() || "U"
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60" role="banner">
       <div className="container mx-auto px-4 max-w-7xl">
         <div className="flex h-16 items-center justify-between">
-          <Link href="/" className="flex items-center space-x-2">
+          <Link href="/" className="flex items-center space-x-2" aria-label="Mat We 홈으로 이동">
             <span className="text-2xl font-bold tracking-tight">Mat We</span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="hidden md:flex items-center gap-6" aria-label="메인 네비게이션">
             <Link href="/courses" className="text-sm font-medium hover:text-primary transition-colors">
               강의
             </Link>
@@ -104,14 +137,22 @@ export function HeaderClient({ initialUser, initialProfile }: HeaderClientProps)
                 </Button>
               </>
             )}
-            <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-              <Menu className="h-5 w-5" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              aria-expanded={isMenuOpen}
+              aria-controls="mobile-menu"
+              aria-label={isMenuOpen ? "메뉴 닫기" : "메뉴 열기"}
+            >
+              <Menu className="h-5 w-5" aria-hidden="true" />
             </Button>
           </div>
         </div>
 
         {isMenuOpen && (
-          <div className="md:hidden py-4 space-y-4 border-t">
+          <nav id="mobile-menu" className="md:hidden py-4 space-y-4 border-t" aria-label="모바일 네비게이션">
             <Link
               href="/courses"
               className="block py-2 text-sm font-medium hover:text-primary transition-colors"
@@ -171,7 +212,7 @@ export function HeaderClient({ initialUser, initialProfile }: HeaderClientProps)
                 </>
               )}
             </div>
-          </div>
+          </nav>
         )}
       </div>
     </header>

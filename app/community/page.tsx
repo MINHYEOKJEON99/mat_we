@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { createClient } from "@/lib/server";
 import { redirect } from "next/navigation";
 import { CommunityPostList } from "@/components/community-post-list";
@@ -30,17 +31,12 @@ export default async function CommunityPage() {
             </div>
             <div className="flex-1">
               <h1 className="text-xl font-bold mb-2">주짓수 커뮤니티</h1>
-              <p className="text-sm text-muted-foreground">
-                주짓수에 대한 경험과 지식을 자유롭게 공유하는 공간입니다.
-              </p>
+              <p className="text-sm text-muted-foreground">주짓수에 대한 경험과 지식을 자유롭게 공유하는 공간입니다.</p>
             </div>
           </div>
         </div>
 
-        <CommunityPostList
-          posts={posts || []}
-          totalCount={count || 0}
-        />
+        <CommunityPostList posts={posts || []} totalCount={count || 0} />
       </main>
     </div>
   );

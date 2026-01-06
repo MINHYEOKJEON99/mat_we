@@ -1,12 +1,14 @@
 "use client"
 
 import * as React from "react"
+import Image from "next/image"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
 const slides = [
   {
+    id: "slide-1",
     title: "주짓수의 기본을 마스터하세요",
     description: "전문 강사진의 체계적인 커리큘럼으로 주짓수의 기초부터 고급 기술까지",
     image: "/brazilian-jiu-jitsu-training-on-mat.jpg",
@@ -14,6 +16,7 @@ const slides = [
     href: "/courses",
   },
   {
+    id: "slide-2",
     title: "1:1 맞춤 PT로 빠르게 성장하세요",
     description: "개인의 수준과 목표에 맞춘 전문 강사의 개인 트레이닝",
     image: "/personal-jiu-jitsu-training-session.jpg",
@@ -21,6 +24,7 @@ const slides = [
     href: "/instructors",
   },
   {
+    id: "slide-3",
     title: "커뮤니티와 함께 성장하세요",
     description: "전국의 주짓수 애호가들과 경험을 공유하고 함께 발전하세요",
     image: "/jiu-jitsu-community-training-together.jpg",
@@ -55,13 +59,20 @@ export function HeroCarousel() {
     >
       {slides.map((slide, index) => (
         <div
-          key={index}
+          key={slide.id}
           className={`absolute inset-0 transition-opacity duration-1000 ${
             index === current ? "opacity-100" : "opacity-0"
           }`}
         >
           <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent z-10" />
-          <img src={slide.image || "/placeholder.svg"} alt={slide.title} className="h-full w-full object-cover" />
+          <Image
+            src={slide.image}
+            alt={slide.title}
+            fill
+            className="object-cover"
+            priority={index === 0}
+            sizes="100vw"
+          />
           <div className="absolute inset-0 z-20 flex items-center">
             <div className="container mx-auto px-4 max-w-7xl">
               <div className="max-w-2xl space-y-6">

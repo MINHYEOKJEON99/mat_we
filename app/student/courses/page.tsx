@@ -1,3 +1,4 @@
+import Image from "next/image"
 import { createClient } from "@/lib/server"
 import { redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -15,12 +16,35 @@ export default async function StudentCoursesPage() {
     redirect("/auth/login")
   }
 
-  // Get enrolled courses
+  // Get enrolled courses (optimized fields)
   const { data: enrollments } = await supabase
     .from("enrollments")
-    .select("*, course:courses(*, instructor:profiles!courses_instructor_id_fkey(*))")
+    .select(`
+      id,
+      enrolled_at,
+      course:courses (
+        id,
+        title,
+        description,
+        thumbnail_url,
+        instructor:profiles!courses_instructor_id_fkey (
+          id,
+          display_name
+        )
+      )
+    `)
     .eq("student_id", user.id)
-    .order("enrolled_at", { ascending: false })
+    .order("enrolled_at", { ascending: false }) as { data: Array<{
+      id: string
+      enrolled_at: string
+      course: {
+        id: string
+        title: string
+        description: string | null
+        thumbnail_url: string | null
+        instructor: { id: string; display_name: string } | null
+      } | null
+    }> | null }
 
   return (
     <div className="min-h-screen bg-background">
@@ -67,11 +91,15 @@ export default async function StudentCoursesPage() {
                 <Card key={enrollment.id} className="flex flex-col">
                   <CardHeader>
                     {course.thumbnail_url && (
-                      <img
-                        src={course.thumbnail_url || "/placeholder.svg"}
-                        alt={course.title}
-                        className="w-full h-48 object-cover rounded-lg mb-4"
-                      />
+                      <div className="relative w-full h-48 mb-4">
+                        <Image
+                          src={course.thumbnail_url}
+                          alt={course.title}
+                          fill
+                          className="object-cover rounded-lg"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        />
+                      </div>
                     )}
                     <CardTitle className="line-clamp-1">{course.title}</CardTitle>
                     <CardDescription className="line-clamp-2">{course.description}</CardDescription>
