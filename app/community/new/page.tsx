@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/server";
 import { redirect } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CreatePostForm } from "@/components/create-post-form";
+import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 
 export default async function NewPostPage() {
   const supabase = await createClient();
@@ -16,16 +17,27 @@ export default async function NewPostPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <main className="container mx-auto px-4 py-8 max-w-2xl">
-        <Card>
-          <CardHeader>
-            <CardTitle>새 게시글 작성</CardTitle>
-            <CardDescription>주짓수에 대한 경험과 지식을 공유하세요</CardDescription>
-          </CardHeader>
-          <CardContent>
+      <main className="container mx-auto px-4 py-6 max-w-5xl">
+        {/* Header */}
+        <div className="flex items-center gap-2 mb-4">
+          <Link
+            href="/community"
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            목록으로
+          </Link>
+        </div>
+
+        {/* Page Title */}
+        <div className="border rounded-sm mb-4">
+          <div className="p-4 border-b bg-muted/30">
+            <h1 className="text-lg font-bold">글쓰기</h1>
+          </div>
+          <div className="p-4">
             <CreatePostForm authorId={user.id} />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </main>
     </div>
   );

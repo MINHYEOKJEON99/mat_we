@@ -1,10 +1,10 @@
 import { createClient } from "@/lib/server"
 import { redirect, notFound } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { PostActions } from "@/components/post-actions"
 import { CommentSection } from "@/components/comment-section"
+import { Eye, MessageCircle, ThumbsUp, ChevronLeft, List } from "lucide-react"
 
 export default async function PostDetailPage({ params }: { params: Promise<{ postId: string }> }) {
   const { postId } = await params
@@ -16,6 +16,17 @@ export default async function PostDetailPage({ params }: { params: Promise<{ pos
 
   if (!user) {
     redirect("/auth/login")
+  }
+
+  // Increment view count
+  try {
+    await supabase.rpc("increment_views", { post_id: postId })
+  } catch {
+    // Fallback: direct update if RPC doesn't exist
+    await supabase
+      .from("community_posts")
+      .update({ views_count: 1 })
+      .eq("id", postId)
   }
 
   // Get post details
@@ -37,60 +48,91 @@ export default async function PostDetailPage({ params }: { params: Promise<{ pos
     .eq("user_id", user.id)
     .single()
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString("ko-KR", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  }
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/dashboard" className="text-2xl font-bold">
-            Mat We
-          </Link>
-          <Button asChild variant="ghost">
-            <Link href="/community">← 커뮤니티</Link>
+      <main className="container mx-auto px-4 py-6 max-w-5xl">
+        {/* Post Header */}
+        <div className="border rounded-sm">
+          {/* Title Section */}
+          <div className="p-4 border-b">
+            <h1 className="text-xl font-bold mb-2">{post.title}</h1>
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <div className="flex items-center gap-4">
+                <span className="font-medium text-foreground">{post.author?.display_name || "익명"}</span>
+                <span>{formatDate(post.created_at)}</span>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="flex items-center gap-1">
+                  <Eye className="h-4 w-4" />
+                  {post.views_count || 0}
+                </span>
+                <span className="flex items-center gap-1">
+                  <ThumbsUp className="h-4 w-4" />
+                  {post.likes_count || 0}
+                </span>
+                <span className="flex items-center gap-1">
+                  <MessageCircle className="h-4 w-4" />
+                  {post.comments_count || 0}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Content Section */}
+          <div className="p-4 min-h-[300px]">
+            <div
+              className="prose prose-sm max-w-none [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded [&_video]:max-w-full [&_video]:h-auto [&_video]:rounded"
+              dangerouslySetInnerHTML={{ __html: post.content }}
+            />
+          </div>
+
+          {/* Action Section */}
+          <div className="p-4 border-t">
+            <PostActions postId={postId} userId={user.id} isLiked={!!userLike} likesCount={post.likes_count} />
+          </div>
+
+          {/* Author Actions */}
+          {post.author_id === user.id && (
+            <div className="px-4 pb-4 flex gap-2">
+              <Button asChild variant="outline" size="sm">
+                <Link href={`/community/${postId}/edit`}>수정</Link>
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Navigation Buttons */}
+        <div className="flex items-center justify-between py-4">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/community">
+              <List className="mr-1 h-4 w-4" />
+              목록
+            </Link>
           </Button>
         </div>
-      </header>
 
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl">{post.title}</CardTitle>
-            <CardDescription>
-              {post.author?.display_name} •{" "}
-              {new Date(post.created_at).toLocaleDateString("ko-KR", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {post.image_url && (
-              <img
-                src={post.image_url || "/placeholder.svg"}
-                alt={post.title}
-                className="w-full max-h-96 object-cover rounded-lg"
-              />
-            )}
-
-            <div className="prose max-w-none">
-              <p className="whitespace-pre-wrap text-muted-foreground leading-relaxed">{post.content}</p>
-            </div>
-
-            <PostActions postId={postId} userId={user.id} isLiked={!!userLike} likesCount={post.likes_count} />
-
-            {post.author_id === user.id && (
-              <div className="flex gap-2 pt-4 border-t">
-                <Button asChild variant="outline" className="bg-transparent">
-                  <Link href={`/community/${postId}/edit`}>수정</Link>
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <div className="mt-8">
-          <CommentSection postId={postId} userId={user.id} />
+        {/* Comments Section */}
+        <div className="border rounded-sm">
+          <div className="p-4 border-b bg-muted/30">
+            <h2 className="font-medium flex items-center gap-2">
+              <MessageCircle className="h-4 w-4" />
+              댓글 {post.comments_count || 0}개
+            </h2>
+          </div>
+          <div className="p-4">
+            <CommentSection postId={postId} userId={user.id} />
+          </div>
         </div>
       </main>
     </div>
