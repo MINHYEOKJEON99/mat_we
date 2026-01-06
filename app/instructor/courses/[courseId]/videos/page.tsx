@@ -3,7 +3,7 @@ import { redirect, notFound } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
-import { AddVideoForm } from "@/components/add-video-form"
+import { AddVideoForm } from "@/components/course/add-video-form"
 
 export default async function CourseVideosPage({ params }: { params: Promise<{ courseId: string }> }) {
   const { courseId } = await params

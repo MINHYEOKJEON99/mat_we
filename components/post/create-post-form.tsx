@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RichEditor } from "@/components/rich-editor";
-import { LoadingOverlay } from "@/components/loading-overlay";
+import { RichEditor } from "@/components/editor/rich-editor";
+import { LoadingOverlay } from "@/components/common/loading-overlay";
 
 interface CreatePostFormProps {
   authorId: string;

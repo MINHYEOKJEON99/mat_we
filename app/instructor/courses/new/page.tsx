@@ -3,7 +3,7 @@ import { redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
-import { CreateCourseForm } from "@/components/create-course-form"
+import { CreateCourseForm } from "@/components/course/create-course-form"
 
 export default async function NewCoursePage() {
   const supabase = await createClient()

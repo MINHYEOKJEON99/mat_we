@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-import { ChatInterface } from "@/components/chat-interface"
-import { SessionActions } from "@/components/session-actions"
+import { ChatInterface } from "@/components/chat/chat-interface"
+import { SessionActions } from "@/components/pt/session-actions"
 
 export default async function ChatPage({ params }: { params: Promise<{ sessionId: string }> }) {
   const { sessionId } = await params

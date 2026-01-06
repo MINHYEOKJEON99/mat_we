@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/server";
 import { redirect, notFound } from "next/navigation";
-import { EditPostForm } from "@/components/edit-post-form";
+import { EditPostForm } from "@/components/post/edit-post-form";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 

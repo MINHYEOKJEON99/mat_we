@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/server";
-import { MypageSidebar, MypageMobileNav } from "@/components/mypage-sidebar";
+import { MypageSidebar, MypageMobileNav } from "@/components/profile/mypage-sidebar";
 
 export default async function MypageLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();

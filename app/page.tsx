@@ -1,8 +1,8 @@
-import { HeroCarousel } from "@/components/hero-carousel"
-import { AmbassadorsSection } from "@/components/ambassadors-section"
-import { FeaturedCourses } from "@/components/featured-courses"
-import { StatsSection } from "@/components/stats-section"
-import { Footer } from "@/components/footer"
+import { HeroCarousel } from "@/components/landing/hero-carousel"
+import { AmbassadorsSection } from "@/components/landing/ambassadors-section"
+import { FeaturedCourses } from "@/components/course/featured-courses"
+import { StatsSection } from "@/components/landing/stats-section"
+import { Footer } from "@/components/layout/footer"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 

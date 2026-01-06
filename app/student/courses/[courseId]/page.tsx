@@ -3,8 +3,8 @@ import { redirect, notFound } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
-import { VideoPlayer } from "@/components/video-player"
-import { VideoList } from "@/components/video-list"
+import { VideoPlayer } from "@/components/course/video-player"
+import { VideoList } from "@/components/course/video-list"
 
 export default async function StudentCourseViewPage({ params }: { params: Promise<{ courseId: string }> }) {
   const { courseId } = await params

@@ -2,8 +2,8 @@ import { createClient } from "@/lib/server"
 import { redirect, notFound } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { PostActions } from "@/components/post-actions"
-import { CommentSection } from "@/components/comment-section"
+import { PostActions } from "@/components/post/post-actions"
+import { CommentSection } from "@/components/post/comment-section"
 import { Eye, MessageCircle, ThumbsUp, ChevronLeft, List } from "lucide-react"
 
 export default async function PostDetailPage({ params }: { params: Promise<{ postId: string }> }) {

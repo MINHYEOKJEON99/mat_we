@@ -1,6 +1,6 @@
 import Image from "@tiptap/extension-image";
 import { ReactNodeViewRenderer } from "@tiptap/react";
-import { EditorImage } from "@/components/editor-image";
+import { EditorImage } from "@/components/editor/editor-image";
 
 export const ResizableImage = Image.extend({
   addAttributes() {

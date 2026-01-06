@@ -3,7 +3,7 @@ import { redirect, notFound } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
-import { PTRequestForm } from "@/components/pt-request-form"
+import { PTRequestForm } from "@/components/pt/pt-request-form"
 
 export default async function InstructorProfilePage({ params }: { params: Promise<{ instructorId: string }> }) {
   const { instructorId } = await params

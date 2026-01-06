@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/server"
-import { EditProfileForm } from "@/components/edit-profile-form"
+import { EditProfileForm } from "@/components/profile/edit-profile-form"
 import type { Profile } from "@/lib/database"
 
 export default async function EditProfilePage() {

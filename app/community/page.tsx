@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { createClient } from "@/lib/server";
 import { redirect } from "next/navigation";
-import { CommunityPostList } from "@/components/community-post-list";
+import { CommunityPostList } from "@/components/post/community-post-list";
 
 export default async function CommunityPage() {
   const supabase = await createClient();

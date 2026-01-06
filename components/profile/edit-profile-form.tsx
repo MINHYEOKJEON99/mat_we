@@ -14,7 +14,7 @@ import { z } from "zod"
 import { Camera, ArrowLeft, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { updateProfile } from "@/app/mypage/edit/actions"
-import { AvatarCropper } from "@/components/avatar-cropper"
+import { AvatarCropper } from "@/components/profile/avatar-cropper"
 import type { Profile } from "@/lib/database"
 
 const editProfileSchema = z.object({
