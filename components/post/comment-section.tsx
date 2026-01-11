@@ -1,56 +1,61 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { usePostComments, useCreateComment, useDeleteComment } from "@/hooks"
+import type React from "react";
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { usePostComments, useCreateComment, useDeleteComment } from "@/hooks";
 
 interface CommentSectionProps {
-  postId: string
-  userId: string
+  postId: string;
+  userId: string;
 }
 
 export function CommentSection({ postId, userId }: CommentSectionProps) {
-  const [newComment, setNewComment] = useState("")
+  const [newComment, setNewComment] = useState("");
 
-  const { data: comments = [], isLoading: isLoadingComments } = usePostComments(postId)
-  const createComment = useCreateComment()
-  const deleteComment = useDeleteComment()
+  const { data: comments = [], isLoading: isLoadingComments } = usePostComments(postId);
+  const createComment = useCreateComment();
+  const deleteComment = useDeleteComment();
+
+  useEffect(() => {
+    console.log(comments);
+    console.log(isLoadingComments);
+  }, [comments, isLoadingComments]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newComment.trim()) return
+    e.preventDefault();
+    if (!newComment.trim()) return;
 
     try {
       await createComment.mutateAsync({
         post_id: postId,
         author_id: userId,
         content: newComment.trim(),
-      })
-      setNewComment("")
+      });
+      setNewComment("");
     } catch (error) {
-      console.error("Failed to create comment:", error)
+      console.error("Failed to create comment:", error);
     }
-  }
+  };
 
   const handleDelete = async (commentId: string) => {
-    if (!confirm("정말로 이 댓글을 삭제하시겠습니까?")) return
+    if (!confirm("정말로 이 댓글을 삭제하시겠습니까?")) return;
 
     try {
-      await deleteComment.mutateAsync({ commentId, postId })
+      await deleteComment.mutateAsync({ commentId, postId });
     } catch (error) {
-      console.error("Failed to delete comment:", error)
+      console.error("Failed to delete comment:", error);
     }
-  }
+  };
 
   if (isLoadingComments) {
     return (
       <div className="text-center py-8">
         <p className="text-muted-foreground">댓글 로딩 중...</p>
       </div>
-    )
+    );
   }
 
   return (
@@ -115,5 +120,5 @@ export function CommentSection({ postId, userId }: CommentSectionProps) {
         ))}
       </div>
     </div>
-  )
+  );
 }
