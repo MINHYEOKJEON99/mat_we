@@ -88,13 +88,34 @@ export function useAuthorPosts(authorId: string | undefined) {
 
 // 게시글 댓글 목록
 export function usePostComments(postId: string | undefined) {
-  const supabase = createClient()
-
   return useQuery({
     queryKey: postKeys.comments(postId || ""),
     queryFn: async () => {
       if (!postId) return []
 
+      const supabase = createClient()
+
+      // Get user session for authenticated request
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (!session?.access_token) {
+        // 비로그인 사용자도 댓글 조회 가능 (익명 키 사용)
+        const { data, error } = await supabase
+          .from("post_comments")
+          .select(`
+            *,
+            author:profiles!post_comments_author_id_fkey (
+              id, display_name, avatar_url
+            )
+          `)
+          .eq("post_id", postId)
+          .order("created_at", { ascending: true })
+
+        if (error) throw error
+        return data as (PostComment & { author: { id: string; display_name: string; avatar_url: string | null } })[]
+      }
+
+      // 로그인 사용자는 access token으로 요청
       const { data, error } = await supabase
         .from("post_comments")
         .select(`
@@ -212,18 +233,30 @@ export function useDeletePost() {
 
 // 댓글 작성
 export function useCreateComment() {
-  const supabase = createClient()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (data: { post_id: string; author_id: string; content: string }) => {
+      const supabase = createClient()
+
+      // Get user session
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (!session?.access_token) {
+        throw new Error("로그인이 필요합니다")
+      }
+
       const { data: result, error } = await supabase
         .from("post_comments")
         .insert(data)
         .select()
         .single<PostComment>()
 
-      if (error) throw error
+      if (error) {
+        console.error("Comment creation error:", error)
+        throw error
+      }
+
       return result
     },
     onSuccess: (data) => {
@@ -235,17 +268,29 @@ export function useCreateComment() {
 
 // 댓글 삭제
 export function useDeleteComment() {
-  const supabase = createClient()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async ({ commentId, postId }: { commentId: string; postId: string }) => {
+      const supabase = createClient()
+
+      // Get user session
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (!session?.access_token) {
+        throw new Error("로그인이 필요합니다")
+      }
+
       const { error } = await supabase
         .from("post_comments")
         .delete()
         .eq("id", commentId)
 
-      if (error) throw error
+      if (error) {
+        console.error("Comment deletion error:", error)
+        throw error
+      }
+
       return { commentId, postId }
     },
     onSuccess: (data) => {

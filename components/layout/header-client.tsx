@@ -12,9 +12,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Menu, LayoutDashboard, User, LogOut } from "lucide-react"
-import { useState, useEffect } from "react"
-import { createClient } from "@/lib/client"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { useUser } from "@/hooks"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 import type { Profile } from "@/lib/database"
 
@@ -25,55 +25,24 @@ interface HeaderClientProps {
 
 export function HeaderClient({ initialUser, initialProfile }: HeaderClientProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [user, setUser] = useState<SupabaseUser | null>(initialUser)
-  const [profile, setProfile] = useState<Profile | null>(initialProfile)
   const router = useRouter()
+  const { user, profile, isLoading } = useUser(initialUser, initialProfile)
 
-  // 서버에서 전달된 초기값이 변경되면 상태 동기화
-  useEffect(() => {
-    setUser(initialUser)
-    setProfile(initialProfile)
-  }, [initialUser, initialProfile])
-
-  // 인증 상태 변화 감지
-  useEffect(() => {
-    const supabase = createClient()
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_IN" && session?.user) {
-        setUser(session.user)
-        // 프로필 정보 가져오기
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", session.user.id)
-          .single<Profile>()
-        setProfile(profileData)
-      } else if (event === "SIGNED_OUT") {
-        setUser(null)
-        setProfile(null)
-      }
-    })
-
-    return () => {
-      subscription.unsubscribe()
-    }
-  }, [])
-
-  const handleLogout = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    setUser(null)
-    setProfile(null)
-    router.push("/")
-    router.refresh()
+  const handleLogout = () => {
+    // 로그아웃 페이지로 이동하여 처리
+    router.push("/auth/logout")
   }
 
   // 프로필 테이블의 avatar_url 우선 사용, 없으면 OAuth metadata 사용
   const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url
   const userInitial = profile?.display_name?.charAt(0) || user?.email?.charAt(0).toUpperCase() || "U"
+
+  // 로딩 중에는 아무것도 표시하지 않음 (깜빡임 방지)
+  const showUserMenu = !isLoading && user
+  const showAuthButtons = !isLoading && !user
+
+  // 디버그 로그
+  console.log("[HeaderClient] isLoading:", isLoading, "user:", user?.email, "showUserMenu:", showUserMenu, "showAuthButtons:", showAuthButtons)
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60" role="banner">
@@ -97,7 +66,7 @@ export function HeaderClient({ initialUser, initialProfile }: HeaderClientProps)
 
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            {user ? (
+            {showUserMenu ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-9 w-9 rounded-full">
@@ -127,7 +96,7 @@ export function HeaderClient({ initialUser, initialProfile }: HeaderClientProps)
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            ) : (
+            ) : showAuthButtons ? (
               <>
                 <Button asChild variant="ghost" className="hidden md:flex">
                   <Link href="/auth/login">로그인</Link>
@@ -136,7 +105,7 @@ export function HeaderClient({ initialUser, initialProfile }: HeaderClientProps)
                   <Link href="/auth/signup">시작하기</Link>
                 </Button>
               </>
-            )}
+            ) : null}
             <Button
               variant="ghost"
               size="icon"
@@ -175,7 +144,7 @@ export function HeaderClient({ initialUser, initialProfile }: HeaderClientProps)
               커뮤니티
             </Link>
             <div className="pt-4 space-y-2 border-t">
-              {user ? (
+              {showUserMenu ? (
                 <>
                   <Button asChild variant="ghost" className="w-full justify-start gap-2">
                     <Link href="/dashboard" onClick={() => setIsMenuOpen(false)}>
@@ -201,7 +170,7 @@ export function HeaderClient({ initialUser, initialProfile }: HeaderClientProps)
                     로그아웃
                   </Button>
                 </>
-              ) : (
+              ) : showAuthButtons ? (
                 <>
                   <Button asChild variant="ghost" className="w-full">
                     <Link href="/auth/login" onClick={() => setIsMenuOpen(false)}>로그인</Link>
@@ -210,7 +179,7 @@ export function HeaderClient({ initialUser, initialProfile }: HeaderClientProps)
                     <Link href="/auth/signup" onClick={() => setIsMenuOpen(false)}>시작하기</Link>
                   </Button>
                 </>
-              )}
+              ) : null}
             </div>
           </nav>
         )}

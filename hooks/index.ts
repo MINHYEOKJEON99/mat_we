@@ -1,6 +1,9 @@
 // Auth hooks
 export * from "./use-auth"
 
+// User hooks
+export * from "./use-user"
+
 // Profile hooks
 export * from "./use-profile"
 
