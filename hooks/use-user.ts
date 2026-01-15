@@ -10,6 +10,8 @@ export function useUser(initialUser: User | null = null, initialProfile: Profile
 
   useEffect(() => {
     const supabase = createClient()
+    let isMounted = true
+    const abortController = new AbortController()
 
     // 초기값이 없는 경우에만 세션을 가져옴
     const getInitialUser = async () => {
@@ -21,10 +23,12 @@ export function useUser(initialUser: User | null = null, initialProfile: Profile
 
       try {
         console.log("[useUser] No SSR data, loading session from client...")
-        setIsLoading(true)
+        if (isMounted) setIsLoading(true)
 
         // 로컬 세션만 확인 (서버 요청 없음)
         const { data: { session }, error } = await supabase.auth.getSession()
+
+        if (!isMounted) return
 
         if (error) {
           console.error("[useUser] Session error:", error)
@@ -53,6 +57,8 @@ export function useUser(initialUser: User | null = null, initialProfile: Profile
           .eq("id", session.user.id)
           .single<Profile>()
 
+        if (!isMounted) return
+
         if (profileError) {
           console.warn("[useUser] Profile load error:", profileError)
         } else if (profileData) {
@@ -62,6 +68,12 @@ export function useUser(initialUser: User | null = null, initialProfile: Profile
 
         setIsLoading(false)
       } catch (error) {
+        if (!isMounted) return
+        // AbortError는 정상적인 cleanup이므로 무시
+        if (error instanceof Error && error.name === "AbortError") {
+          console.log("[useUser] Request aborted (component unmounted)")
+          return
+        }
         console.error("[useUser] Error loading initial user:", error)
         setUser(null)
         setProfile(null)
@@ -73,6 +85,8 @@ export function useUser(initialUser: User | null = null, initialProfile: Profile
 
     // 인증 상태 변화 구독
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!isMounted) return
+
       console.log("[useUser] Auth state changed:", event, session ? `(${session.user.email})` : "(no session)")
 
       if (event === "SIGNED_IN" && session?.user) {
@@ -85,6 +99,8 @@ export function useUser(initialUser: User | null = null, initialProfile: Profile
           .select("*")
           .eq("id", session.user.id)
           .single<Profile>()
+
+        if (!isMounted) return
 
         if (profileData) {
           console.log("[useUser] Profile loaded on sign in:", profileData.display_name)
@@ -103,9 +119,11 @@ export function useUser(initialUser: User | null = null, initialProfile: Profile
     })
 
     return () => {
+      isMounted = false
+      abortController.abort()
       subscription.unsubscribe()
     }
-  }, [])
+  }, [initialUser, initialProfile])
 
   return { user, profile, isLoading }
 }
