@@ -3,12 +3,12 @@
 import type React from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RichEditor } from "@/components/editor/rich-editor";
 import { LoadingOverlay } from "@/components/common/loading-overlay";
 import { Trash2 } from "lucide-react";
+import { updatePost, deletePost } from "@/lib/api/client";
 
 interface Post {
   id: string;
@@ -45,7 +45,6 @@ export function EditPostForm({ post, authorId }: EditPostFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const supabase = createClient();
     setIsLoading(true);
     setLoadingMessage("글 수정중입니다...");
     setError(null);
@@ -66,16 +65,11 @@ export function EditPostForm({ post, authorId }: EditPostFormProps) {
     try {
       const imageUrl = extractFirstImageUrl(content);
 
-      const { error } = await supabase
-        .from("community_posts")
-        .update({
-          title: title.trim(),
-          content: content,
-          image_url: imageUrl,
-        })
-        .eq("id", post.id);
-
-      if (error) throw error;
+      await updatePost(post.id, {
+        title: title.trim(),
+        content: content,
+        image_url: imageUrl,
+      });
 
       router.push(`/community/${post.id}`);
       router.refresh();
@@ -89,14 +83,11 @@ export function EditPostForm({ post, authorId }: EditPostFormProps) {
   const handleDelete = async () => {
     if (!confirm("정말로 이 게시글을 삭제하시겠습니까?")) return;
 
-    const supabase = createClient();
     setIsLoading(true);
     setLoadingMessage("글 삭제중입니다...");
 
     try {
-      const { error } = await supabase.from("community_posts").delete().eq("id", post.id);
-
-      if (error) throw error;
+      await deletePost(post.id);
 
       router.push("/community");
       router.refresh();

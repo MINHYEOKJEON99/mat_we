@@ -1,31 +1,32 @@
-import { createClient } from "@/lib/server"
-import { redirect, notFound } from "next/navigation"
+import { notFound } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { EditCourseForm } from "@/components/course/edit-course-form"
+import { requireAuth, getCourseById } from "@/lib/api/server"
 
 export default async function CourseDetailPage({ params }: { params: Promise<{ courseId: string }> }) {
   const { courseId } = await params
-  const supabase = await createClient()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await requireAuth()
 
-  if (!user) {
-    redirect("/auth/login")
+  const courseData = await getCourseById(courseId)
+
+  if (!courseData || courseData.instructor_id !== user.id) {
+    notFound()
   }
 
-  const { data: course } = await supabase
-    .from("courses")
-    .select("*")
-    .eq("id", courseId)
-    .eq("instructor_id", user.id)
-    .single()
-
-  if (!course) {
-    notFound()
+  // Extract only the course data without instructor info for EditCourseForm
+  const course = {
+    id: courseData.id,
+    title: courseData.title,
+    description: courseData.description,
+    thumbnail_url: courseData.thumbnail_url,
+    price: courseData.price,
+    level: courseData.level,
+    instructor_id: courseData.instructor_id,
+    created_at: courseData.created_at,
+    updated_at: courseData.updated_at,
   }
 
   return (

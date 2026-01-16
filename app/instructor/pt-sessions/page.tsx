@@ -1,33 +1,21 @@
-import { createClient } from "@/lib/server"
 import { redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
+import { requireAuth, getProfileById, getPTSessionsByInstructor } from "@/lib/api/server"
 
 export default async function InstructorPTSessionsPage() {
-  const supabase = await createClient()
+  const user = await requireAuth()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect("/auth/login")
-  }
-
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single()
+  const profile = await getProfileById(user.id)
 
   if (!profile || profile.role !== "instructor") {
     redirect("/dashboard")
   }
 
   // Get PT sessions with student information
-  const { data: sessions } = await supabase
-    .from("pt_sessions")
-    .select("*, student:profiles!pt_sessions_student_id_fkey(*)")
-    .eq("instructor_id", user.id)
-    .order("created_at", { ascending: false })
+  const sessions = await getPTSessionsByInstructor(user.id)
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {

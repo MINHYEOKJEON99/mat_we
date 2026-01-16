@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isMiddlewareProfileComplete } from "@/lib/api/middleware";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -68,14 +69,11 @@ export async function updateSession(request: NextRequest) {
 
   // 로그인 상태 + 인증 라우트 아님 → 프로필 완성 여부 체크
   if (user && !isAuthRoute) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("is_profile_complete")
-      .eq("id", user.id)
-      .single();
+    // Use centralized middleware API for profile check
+    const profileComplete = await isMiddlewareProfileComplete(supabase, user.id);
 
     // 프로필이 없거나 미완성이면 → 프로필 완성 페이지로 리다이렉트
-    if (!profile || !profile.is_profile_complete) {
+    if (!profileComplete) {
       const url = request.nextUrl.clone();
       url.pathname = "/auth/complete-profile";
       return NextResponse.redirect(url);

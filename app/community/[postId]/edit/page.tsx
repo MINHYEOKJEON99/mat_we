@@ -1,30 +1,18 @@
-import { createClient } from "@/lib/server";
-import { redirect, notFound } from "next/navigation";
+import { notFound } from "next/navigation";
 import { EditPostForm } from "@/components/post/edit-post-form";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
+import { requireAuth, getPostById } from "@/lib/api/server";
 
 export default async function EditPostPage({ params }: { params: Promise<{ postId: string }> }) {
   const { postId } = await params;
-  const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/auth/login");
-  }
+  const user = await requireAuth();
 
   // Get post details
-  const { data: post } = await supabase
-    .from("community_posts")
-    .select("*")
-    .eq("id", postId)
-    .eq("author_id", user.id)
-    .single();
+  const post = await getPostById(postId);
 
-  if (!post) {
+  if (!post || post.author_id !== user.id) {
     notFound();
   }
 

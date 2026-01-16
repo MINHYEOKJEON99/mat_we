@@ -1,24 +1,9 @@
-import Image from "next/image";
-import { createClient } from "@/lib/server";
-import { redirect } from "next/navigation";
 import { CommunityPostList } from "@/components/post/community-post-list";
+import { getAllPosts } from "@/lib/api/server";
 
 export default async function CommunityPage() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/auth/login");
-  }
-
   // Get all community posts with author info
-  const { data: posts, count } = await supabase
-    .from("community_posts")
-    .select("*, author:profiles!community_posts_author_id_fkey(*)", { count: "exact" })
-    .order("created_at", { ascending: false });
+  const { posts, count } = await getAllPosts();
 
   return (
     <div className="min-h-screen bg-background">
@@ -36,7 +21,7 @@ export default async function CommunityPage() {
           </div>
         </div>
 
-        <CommunityPostList posts={posts || []} totalCount={count || 0} />
+        <CommunityPostList posts={posts} totalCount={count} />
       </main>
     </div>
   );

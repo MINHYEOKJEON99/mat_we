@@ -4,11 +4,11 @@ import type React from "react"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { addCourseVideo, getNextVideoOrderIndex } from "@/lib/api/client"
 
 interface AddVideoFormProps {
   courseId: string
@@ -26,22 +26,14 @@ export function AddVideoForm({ courseId }: AddVideoFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const supabase = createClient()
     setIsLoading(true)
     setError(null)
 
     try {
-      // Get the current max order_index
-      const { data: existingVideos } = await supabase
-        .from("course_videos")
-        .select("order_index")
-        .eq("course_id", courseId)
-        .order("order_index", { ascending: false })
-        .limit(1)
+      // Get the next order index
+      const nextOrderIndex = await getNextVideoOrderIndex(courseId)
 
-      const nextOrderIndex = existingVideos && existingVideos.length > 0 ? existingVideos[0].order_index + 1 : 0
-
-      const { error } = await supabase.from("course_videos").insert({
+      await addCourseVideo({
         course_id: courseId,
         title,
         description: description || null,
@@ -50,8 +42,6 @@ export function AddVideoForm({ courseId }: AddVideoFormProps) {
         duration: duration ? Number.parseInt(duration) : null,
         order_index: nextOrderIndex,
       })
-
-      if (error) throw error
 
       // Reset form
       setTitle("")

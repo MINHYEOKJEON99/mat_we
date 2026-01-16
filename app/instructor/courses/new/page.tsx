@@ -1,22 +1,13 @@
-import { createClient } from "@/lib/server"
 import { redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { CreateCourseForm } from "@/components/course/create-course-form"
+import { requireAuth, getProfileById } from "@/lib/api/server"
 
 export default async function NewCoursePage() {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect("/auth/login")
-  }
-
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single()
+  const user = await requireAuth()
+  const profile = await getProfileById(user.id)
 
   if (!profile || profile.role !== "instructor") {
     redirect("/dashboard")

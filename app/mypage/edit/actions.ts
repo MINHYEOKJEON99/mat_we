@@ -2,17 +2,13 @@
 
 import { createClient } from "@/lib/server"
 import { revalidatePath } from "next/cache"
+import { requireAuth } from "@/lib/api/server"
 
 export async function updateProfile(formData: FormData) {
+  // Use centralized auth API
+  const user = await requireAuth()
+
   const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return { error: "로그인이 필요합니다" }
-  }
 
   const displayName = formData.get("displayName") as string
   const bio = formData.get("bio") as string

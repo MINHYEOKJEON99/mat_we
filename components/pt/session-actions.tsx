@@ -2,11 +2,11 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { updatePTSessionStatus } from "@/lib/api/client"
 
 interface SessionActionsProps {
   sessionId: string
@@ -26,22 +26,13 @@ export function SessionActions({ sessionId, currentStatus }: SessionActionsProps
       return
     }
 
-    const supabase = createClient()
     setIsLoading(true)
     setError(null)
 
     try {
       const scheduledAt = new Date(`${scheduledDate}T${scheduledTime}`)
 
-      const { error } = await supabase
-        .from("pt_sessions")
-        .update({
-          status: "confirmed",
-          scheduled_at: scheduledAt.toISOString(),
-        })
-        .eq("id", sessionId)
-
-      if (error) throw error
+      await updatePTSessionStatus(sessionId, "confirmed", scheduledAt.toISOString())
 
       router.refresh()
     } catch (error: unknown) {
@@ -54,13 +45,10 @@ export function SessionActions({ sessionId, currentStatus }: SessionActionsProps
   const handleReject = async () => {
     if (!confirm("정말로 이 PT 요청을 거절하시겠습니까?")) return
 
-    const supabase = createClient()
     setIsLoading(true)
 
     try {
-      const { error } = await supabase.from("pt_sessions").update({ status: "cancelled" }).eq("id", sessionId)
-
-      if (error) throw error
+      await updatePTSessionStatus(sessionId, "cancelled")
 
       router.refresh()
     } catch (error: unknown) {

@@ -4,13 +4,13 @@ import type React from "react"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { Course } from "@/lib/database"
+import { updateCourse, deleteCourse } from "@/lib/api/client"
 
 interface EditCourseFormProps {
   course: Course
@@ -28,23 +28,17 @@ export function EditCourseForm({ course }: EditCourseFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const supabase = createClient()
     setIsLoading(true)
     setError(null)
 
     try {
-      const { error } = await supabase
-        .from("courses")
-        .update({
-          title,
-          description,
-          price: Number.parseFloat(price),
-          level,
-          thumbnail_url: thumbnailUrl || null,
-        })
-        .eq("id", course.id)
-
-      if (error) throw error
+      await updateCourse(course.id, {
+        title,
+        description,
+        price: Number.parseFloat(price),
+        level,
+        thumbnail_url: thumbnailUrl || null,
+      })
 
       router.push("/instructor/courses")
       router.refresh()
@@ -58,13 +52,10 @@ export function EditCourseForm({ course }: EditCourseFormProps) {
   const handleDelete = async () => {
     if (!confirm("정말로 이 강의를 삭제하시겠습니까?")) return
 
-    const supabase = createClient()
     setIsLoading(true)
 
     try {
-      const { error } = await supabase.from("courses").delete().eq("id", course.id)
-
-      if (error) throw error
+      await deleteCourse(course.id)
 
       router.push("/instructor/courses")
       router.refresh()

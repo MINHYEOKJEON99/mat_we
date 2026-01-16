@@ -1,19 +1,10 @@
-import { createClient } from "@/lib/server";
-import { redirect } from "next/navigation";
 import { CreatePostForm } from "@/components/post/create-post-form";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
+import { requireAuth } from "@/lib/api/server";
 
 export default async function NewPostPage() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/auth/login");
-  }
+  const user = await requireAuth();
 
   return (
     <div className="min-h-screen bg-background">

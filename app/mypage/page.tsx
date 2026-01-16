@@ -1,37 +1,21 @@
-import { redirect } from "next/navigation"
 import Link from "next/link"
-import { createClient } from "@/lib/server"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Pencil, MessageSquare, Eye, ThumbsUp } from "lucide-react"
-import type { Profile, CommunityPost } from "@/lib/database"
+import { Pencil, MessageSquare, ThumbsUp } from "lucide-react"
+import type { CommunityPost } from "@/lib/database"
+import { requireAuth, getPostsByAuthor, getProfileById } from "@/lib/api/server"
 
 export default async function MypagePage() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect("/auth/login")
-  }
+  const user = await requireAuth()
 
   // 프로필 정보 가져오기
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single<Profile>()
+  const profile = await getProfileById(user.id)
 
   // 작성한 게시글 가져오기 (최근 5개)
-  const { data: posts } = await supabase
-    .from("community_posts")
-    .select("*")
-    .eq("author_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(5)
+  const allPosts = await getPostsByAuthor(user.id)
+  const posts = allPosts.slice(0, 5)
 
   // 수강평 개수 (추후 구현 시 실제 데이터로 대체)
   const reviewCount = 0

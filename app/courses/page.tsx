@@ -1,49 +1,20 @@
 import Image from "next/image";
-import { createClient } from "@/lib/server";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import { getAllCourses, getCurrentUser, getEnrolledCourseIds } from "@/lib/api/server";
 
 export default async function CoursesPage() {
-  const supabase = await createClient();
+  // Get all courses with instructor info
+  const courses = await getAllCourses();
 
-  // Get all courses with instructor info (optimized fields)
-  const { data: courses } = await supabase
-    .from("courses")
-    .select(`
-      id,
-      title,
-      description,
-      thumbnail_url,
-      price,
-      level,
-      created_at,
-      instructor:profiles!courses_instructor_id_fkey (
-        id,
-        display_name
-      )
-    `)
-    .order("created_at", { ascending: false }) as { data: Array<{
-      id: string
-      title: string
-      description: string | null
-      thumbnail_url: string | null
-      price: number
-      level: string
-      created_at: string
-      instructor: { id: string; display_name: string } | null
-    }> | null };
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   // If user is logged in, get their enrollments
   let enrolledCourseIds: string[] = [];
   if (user) {
-    const { data: enrollments } = await supabase.from("enrollments").select("course_id").eq("student_id", user.id);
-    enrolledCourseIds = enrollments?.map((e) => e.course_id) || [];
+    enrolledCourseIds = await getEnrolledCourseIds(user.id);
   }
 
   return (

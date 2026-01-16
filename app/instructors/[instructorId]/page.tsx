@@ -1,36 +1,25 @@
-import { createClient } from "@/lib/server"
-import { redirect, notFound } from "next/navigation"
+import { notFound } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { PTRequestForm } from "@/components/pt/pt-request-form"
+import { requireAuth, getInstructorProfile, getCoursesByInstructor } from "@/lib/api/server"
 
 export default async function InstructorProfilePage({ params }: { params: Promise<{ instructorId: string }> }) {
   const { instructorId } = await params
-  const supabase = await createClient()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect("/auth/login")
-  }
+  const user = await requireAuth()
 
   // Get instructor profile
-  const { data: instructor } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", instructorId)
-    .eq("role", "instructor")
-    .single()
+  const instructor = await getInstructorProfile(instructorId)
 
   if (!instructor) {
     notFound()
   }
 
-  // Get instructor's courses
-  const { data: courses } = await supabase.from("courses").select("*").eq("instructor_id", instructorId).limit(3)
+  // Get instructor's courses (limit 3)
+  const allCourses = await getCoursesByInstructor(instructorId)
+  const courses = allCourses.slice(0, 3)
 
   return (
     <div className="min-h-screen bg-background">

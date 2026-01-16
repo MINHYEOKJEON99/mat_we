@@ -1,22 +1,17 @@
 import { createClient } from "@/lib/server"
-import { redirect, notFound } from "next/navigation"
+import { notFound } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { PostActions } from "@/components/post/post-actions"
 import { CommentSection } from "@/components/post/comment-section"
-import { Eye, MessageCircle, ThumbsUp, ChevronLeft, List } from "lucide-react"
+import { Eye, MessageCircle, ThumbsUp, List } from "lucide-react"
+import { requireAuth, getPostById } from "@/lib/api/server"
 
 export default async function PostDetailPage({ params }: { params: Promise<{ postId: string }> }) {
   const { postId } = await params
   const supabase = await createClient()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect("/auth/login")
-  }
+  const user = await requireAuth()
 
   // Increment view count
   try {
@@ -30,11 +25,7 @@ export default async function PostDetailPage({ params }: { params: Promise<{ pos
   }
 
   // Get post details
-  const { data: post } = await supabase
-    .from("community_posts")
-    .select("*, author:profiles!community_posts_author_id_fkey(*)")
-    .eq("id", postId)
-    .single()
+  const post = await getPostById(postId)
 
   if (!post) {
     notFound()
