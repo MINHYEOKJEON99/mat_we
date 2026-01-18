@@ -6,7 +6,9 @@
       "Bash(npm install:*)",
       "Bash(npm ls:*)",
       "Bash(find:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(grep:*)",
+      "Bash(cat:*)"
     ]
   }
 }

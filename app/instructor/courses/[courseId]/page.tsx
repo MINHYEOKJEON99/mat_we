@@ -25,6 +25,9 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
     price: courseData.price,
     level: courseData.level,
     instructor_id: courseData.instructor_id,
+    average_rating: courseData.average_rating ?? 0,
+    review_count: courseData.review_count ?? 0,
+    student_count: courseData.student_count ?? 0,
     created_at: courseData.created_at,
     updated_at: courseData.updated_at,
   }

@@ -37,7 +37,7 @@ export function EditCourseForm({ course }: EditCourseFormProps) {
         description,
         price: Number.parseFloat(price),
         level,
-        thumbnail_url: thumbnailUrl || null,
+        thumbnail_url: thumbnailUrl || undefined,
       })
 
       router.push("/instructor/courses")

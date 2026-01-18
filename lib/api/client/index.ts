@@ -6,3 +6,6 @@ export * from "./courses"
 
 // PT Sessions
 export * from "./pt-sessions"
+
+// Reviews
+export * from "./reviews"

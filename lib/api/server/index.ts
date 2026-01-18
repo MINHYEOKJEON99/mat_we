@@ -18,3 +18,9 @@ export * from "./pt-sessions"
 
 // Chat
 export * from "./chat"
+
+// Categories
+export * from "./categories"
+
+// Reviews
+export * from "./reviews"

@@ -17,6 +17,15 @@ export const SPORT_LABELS: Record<SportType, string> = {
 // 현재 지원하는 종목 (추후 확장 시 여기에 추가)
 export const AVAILABLE_SPORTS: SportType[] = ["jiujitsu"];
 
+// 카테고리 레벨 (1=종목, 2=포지션, 3=테크닉)
+export type CategoryLevel = 1 | 2 | 3;
+
+export const CATEGORY_LEVEL_LABELS: Record<CategoryLevel, string> = {
+  1: "종목",
+  2: "포지션",
+  3: "테크닉",
+};
+
 export interface Profile {
   id: string;
   email: string | null;
@@ -38,9 +47,13 @@ export interface Course {
   thumbnail_url: string | null;
   price: number;
   level: CourseLevel | null;
+  average_rating: number;
+  review_count: number;
+  student_count: number;
   created_at: string;
   updated_at: string;
   instructor?: Profile;
+  categories?: Category[];
 }
 
 export interface CourseVideo {
@@ -53,6 +66,42 @@ export interface CourseVideo {
   duration: number | null;
   order_index: number;
   created_at: string;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  name_ko: string;
+  slug: string;
+  description: string | null;
+  parent_id: string | null;
+  level: CategoryLevel;
+  sort_order: number;
+  icon: string | null;
+  created_at: string;
+  parent?: Category;
+  children?: Category[];
+}
+
+export interface CourseCategory {
+  id: string;
+  course_id: string;
+  category_id: string;
+  created_at: string;
+  category?: Category;
+}
+
+export interface CourseReview {
+  id: string;
+  course_id: string;
+  student_id: string;
+  rating: number;
+  content: string | null;
+  is_visible: boolean;
+  created_at: string;
+  updated_at: string;
+  student?: Profile;
+  course?: Course;
 }
 
 export interface Enrollment {

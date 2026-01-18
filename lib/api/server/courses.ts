@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/server"
-import type { Course, CourseVideo } from "@/lib/database"
+import type { Course, CourseVideo, Category } from "@/lib/database"
 
 export type CourseWithInstructor = Course & {
   instructor: {
@@ -10,10 +10,14 @@ export type CourseWithInstructor = Course & {
   } | null
 }
 
+export type CourseWithDetails = CourseWithInstructor & {
+  categories?: Category[]
+}
+
 /**
- * Get all courses with instructor info
+ * Get all courses with instructor info and categories
  */
-export async function getAllCourses(): Promise<CourseWithInstructor[]> {
+export async function getAllCourses(): Promise<CourseWithDetails[]> {
   const supabase = await createClient()
 
   const { data, error } = await supabase
@@ -22,6 +26,9 @@ export async function getAllCourses(): Promise<CourseWithInstructor[]> {
       *,
       instructor:profiles!courses_instructor_id_fkey (
         id, display_name, avatar_url
+      ),
+      course_categories (
+        category:categories (*)
       )
     `)
     .order("created_at", { ascending: false })
@@ -31,13 +38,19 @@ export async function getAllCourses(): Promise<CourseWithInstructor[]> {
     return []
   }
 
-  return data as CourseWithInstructor[]
+  // Transform the data to flatten categories
+  return (data || []).map(course => ({
+    ...course,
+    categories: course.course_categories
+      ?.map((cc: { category: Category | null }) => cc.category)
+      .filter(Boolean) as Category[] || []
+  })) as CourseWithDetails[]
 }
 
 /**
- * Get course by ID with instructor info
+ * Get course by ID with instructor info and categories
  */
-export async function getCourseById(courseId: string): Promise<CourseWithInstructor | null> {
+export async function getCourseById(courseId: string): Promise<CourseWithDetails | null> {
   const supabase = await createClient()
 
   const { data, error } = await supabase
@@ -46,6 +59,9 @@ export async function getCourseById(courseId: string): Promise<CourseWithInstruc
       *,
       instructor:profiles!courses_instructor_id_fkey (
         id, display_name, avatar_url, bio
+      ),
+      course_categories (
+        category:categories (*)
       )
     `)
     .eq("id", courseId)
@@ -56,7 +72,13 @@ export async function getCourseById(courseId: string): Promise<CourseWithInstruc
     return null
   }
 
-  return data as CourseWithInstructor
+  // Transform the data to flatten categories
+  return {
+    ...data,
+    categories: data.course_categories
+      ?.map((cc: { category: Category | null }) => cc.category)
+      .filter(Boolean) as Category[] || []
+  } as CourseWithDetails
 }
 
 /**
