@@ -1,15 +1,20 @@
 "use client"
 
-import { useState } from "react"
+import { useCallback } from "react"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import type { Category } from "@/lib/database"
 
 interface CategoryFilterProps {
   categories: Category[]
   selectedCategory: string | null
-  onCategoryChange: (categorySlug: string | null) => void
+  onCategoryChange: (slug: string | null) => void
   className?: string
 }
 
@@ -26,6 +31,7 @@ export function CategoryFilter({
 
   // Find selected category info
   const selectedCat = categories.find(c => c.slug === selectedCategory)
+
   const selectedLevel1 = selectedCat?.level === 1
     ? selectedCat
     : selectedCat?.level === 2
@@ -50,82 +56,84 @@ export function CategoryFilter({
     ? level3Categories.filter(c => c.parent_id === selectedLevel2.id)
     : []
 
+  const handleLevel1Change = useCallback((value: string) => {
+    onCategoryChange(value === "all" ? null : value)
+  }, [onCategoryChange])
+
+  const handleLevel2Change = useCallback((value: string) => {
+    if (value === "all" && selectedLevel1) {
+      onCategoryChange(selectedLevel1.slug)
+    } else {
+      onCategoryChange(value)
+    }
+  }, [onCategoryChange, selectedLevel1])
+
+  const handleLevel3Change = useCallback((value: string) => {
+    if (value === "all" && selectedLevel2) {
+      onCategoryChange(selectedLevel2.slug)
+    } else {
+      onCategoryChange(value)
+    }
+  }, [onCategoryChange, selectedLevel2])
+
   return (
-    <div className={cn("space-y-3", className)}>
+    <div className={cn("flex flex-wrap items-center gap-3", className)}>
       {/* Level 1: 종목 (Sport Types) */}
-      <ScrollArea className="w-full whitespace-nowrap">
-        <div className="flex gap-2">
-          <Button
-            variant={!selectedCategory ? "default" : "outline"}
-            size="sm"
-            onClick={() => onCategoryChange(null)}
-          >
-            전체
-          </Button>
+      <Select
+        value={selectedLevel1?.slug || "all"}
+        onValueChange={handleLevel1Change}
+      >
+        <SelectTrigger className="w-[140px]">
+          <SelectValue placeholder="종목 선택" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">전체 종목</SelectItem>
           {level1Categories.map(cat => (
-            <Button
-              key={cat.id}
-              variant={selectedLevel1?.id === cat.id ? "default" : "outline"}
-              size="sm"
-              onClick={() => onCategoryChange(cat.slug)}
-            >
+            <SelectItem key={cat.id} value={cat.slug}>
               {cat.name_ko}
-            </Button>
+            </SelectItem>
           ))}
-        </div>
-        <ScrollBar orientation="horizontal" />
-      </ScrollArea>
+        </SelectContent>
+      </Select>
 
       {/* Level 2: 포지션 (Positions) */}
       {filteredLevel2.length > 0 && (
-        <ScrollArea className="w-full whitespace-nowrap">
-          <div className="flex gap-2">
-            <Button
-              variant={selectedLevel1 && !selectedLevel2 ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => onCategoryChange(selectedLevel1?.slug || null)}
-            >
-              전체 {selectedLevel1?.name_ko}
-            </Button>
+        <Select
+          value={selectedLevel2?.slug || "all"}
+          onValueChange={handleLevel2Change}
+        >
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="포지션 선택" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">전체 포지션</SelectItem>
             {filteredLevel2.map(cat => (
-              <Button
-                key={cat.id}
-                variant={selectedLevel2?.id === cat.id ? "secondary" : "ghost"}
-                size="sm"
-                onClick={() => onCategoryChange(cat.slug)}
-              >
+              <SelectItem key={cat.id} value={cat.slug}>
                 {cat.name_ko}
-              </Button>
+              </SelectItem>
             ))}
-          </div>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+          </SelectContent>
+        </Select>
       )}
 
       {/* Level 3: 테크닉 (Techniques) */}
       {filteredLevel3.length > 0 && (
-        <ScrollArea className="w-full whitespace-nowrap">
-          <div className="flex gap-2">
-            <Button
-              variant={selectedLevel2 && selectedCat?.level !== 3 ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => onCategoryChange(selectedLevel2?.slug || null)}
-            >
-              전체 {selectedLevel2?.name_ko}
-            </Button>
+        <Select
+          value={selectedCat?.level === 3 ? selectedCat.slug : "all"}
+          onValueChange={handleLevel3Change}
+        >
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="기술 선택" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">전체 기술</SelectItem>
             {filteredLevel3.map(cat => (
-              <Button
-                key={cat.id}
-                variant={selectedCategory === cat.slug ? "secondary" : "ghost"}
-                size="sm"
-                onClick={() => onCategoryChange(cat.slug)}
-              >
+              <SelectItem key={cat.id} value={cat.slug}>
                 {cat.name_ko}
-              </Button>
+              </SelectItem>
             ))}
-          </div>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+          </SelectContent>
+        </Select>
       )}
     </div>
   )
