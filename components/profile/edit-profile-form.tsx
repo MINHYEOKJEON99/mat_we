@@ -12,6 +12,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { Camera, ArrowLeft, Loader2 } from "lucide-react"
+import { useMutation } from "@tanstack/react-query"
 import Link from "next/link"
 import { updateProfile } from "@/app/mypage/edit/actions"
 import { AvatarCropper } from "@/components/profile/avatar-cropper"
@@ -31,13 +32,27 @@ interface EditProfileFormProps {
 export function EditProfileForm({ initialProfile }: EditProfileFormProps) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(initialProfile.avatar_url)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
-  const [success, setSuccess] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [avatarError, setAvatarError] = useState<string | null>(null)
   const [cropperOpen, setCropperOpen] = useState(false)
   const [originalImageSrc, setOriginalImageSrc] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
+
+  const mutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const result = await updateProfile(formData)
+      if (result.error) {
+        throw new Error(result.error)
+      }
+      return result
+    },
+    onSuccess: () => {
+      setTimeout(() => {
+        router.push("/mypage")
+        router.refresh()
+      }, 1000)
+    },
+  })
 
   const {
     register,
@@ -55,9 +70,10 @@ export function EditProfileForm({ initialProfile }: EditProfileFormProps) {
     const file = e.target.files?.[0]
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        setError("이미지 크기는 5MB를 초과할 수 없습니다")
+        setAvatarError("이미지 크기는 5MB를 초과할 수 없습니다")
         return
       }
+      setAvatarError(null)
       // 크로퍼 열기
       const imageUrl = URL.createObjectURL(file)
       setOriginalImageSrc(imageUrl)
@@ -77,38 +93,17 @@ export function EditProfileForm({ initialProfile }: EditProfileFormProps) {
     }
   }
 
-  const handleUpdateProfile = async (data: EditProfileFormData) => {
-    setIsLoading(true)
-    setError(null)
+  const handleUpdateProfile = (data: EditProfileFormData) => {
+    const formData = new FormData()
+    formData.append("displayName", data.displayName)
+    formData.append("bio", data.bio || "")
+    formData.append("currentAvatarUrl", avatarUrl || "")
 
-    try {
-      const formData = new FormData()
-      formData.append("displayName", data.displayName)
-      formData.append("bio", data.bio || "")
-      formData.append("currentAvatarUrl", avatarUrl || "")
-
-      if (avatarFile) {
-        formData.append("avatar", avatarFile)
-      }
-
-      const result = await updateProfile(formData)
-
-      if (result.error) {
-        setError(result.error)
-        return
-      }
-
-      setSuccess(true)
-      setTimeout(() => {
-        router.push("/mypage")
-        router.refresh()
-      }, 1000)
-    } catch (err) {
-      console.error("Profile update error:", err)
-      setError("프로필 업데이트 중 오류가 발생했습니다")
-    } finally {
-      setIsLoading(false)
+    if (avatarFile) {
+      formData.append("avatar", avatarFile)
     }
+
+    mutation.mutate(formData)
   }
 
   const userInitial = initialProfile.display_name?.charAt(0) || initialProfile.email?.charAt(0)?.toUpperCase() || "U"
@@ -157,6 +152,9 @@ export function EditProfileForm({ initialProfile }: EditProfileFormProps) {
                   />
                 </div>
                 <p className="text-sm text-muted-foreground">클릭하여 프로필 사진 변경</p>
+                {avatarError && (
+                  <p className="text-sm text-red-500">{avatarError}</p>
+                )}
               </div>
 
               {/* Email (읽기 전용) */}
@@ -218,11 +216,11 @@ export function EditProfileForm({ initialProfile }: EditProfileFormProps) {
                 </p>
               </div>
 
-              {error && (
-                <p className="text-sm text-red-500">{error}</p>
+              {mutation.error && (
+                <p className="text-sm text-red-500">{mutation.error.message}</p>
               )}
 
-              {success && (
+              {mutation.isSuccess && (
                 <p className="text-sm text-green-600">프로필이 성공적으로 수정되었습니다!</p>
               )}
 
@@ -235,8 +233,8 @@ export function EditProfileForm({ initialProfile }: EditProfileFormProps) {
                 >
                   취소
                 </Button>
-                <Button type="submit" className="flex-1" disabled={isLoading}>
-                  {isLoading ? (
+                <Button type="submit" className="flex-1" disabled={mutation.isPending}>
+                  {mutation.isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       저장 중...

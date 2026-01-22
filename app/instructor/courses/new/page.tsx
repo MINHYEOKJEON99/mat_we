@@ -1,9 +1,8 @@
 import { redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { CreateCourseForm } from "@/components/course/create-course-form"
-import { requireAuth, getProfileById } from "@/lib/api/server"
+import { requireAuth, getProfileById, getAllCategories } from "@/lib/api/server"
 
 export default async function NewCoursePage() {
   const user = await requireAuth()
@@ -12,6 +11,8 @@ export default async function NewCoursePage() {
   if (!profile || profile.role !== "instructor") {
     redirect("/dashboard")
   }
+
+  const categories = await getAllCategories()
 
   return (
     <div className="min-h-screen bg-background">
@@ -26,16 +27,12 @@ export default async function NewCoursePage() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 max-w-2xl">
-        <Card>
-          <CardHeader>
-            <CardTitle>새 강의 만들기</CardTitle>
-            <CardDescription>주짓수 강의 정보를 입력하세요</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <CreateCourseForm instructorId={user.id} />
-          </CardContent>
-        </Card>
+      <main className="container mx-auto px-4 py-8">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold">새 강의 만들기</h1>
+          <p className="text-muted-foreground">강의 정보를 입력하세요</p>
+        </div>
+        <CreateCourseForm instructorId={user.id} categories={categories} />
       </main>
     </div>
   )

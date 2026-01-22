@@ -1,132 +1,642 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
+import { useMutation } from "@tanstack/react-query"
 import { createClient } from "@/lib/client"
+// import { uploadImage, compressImage } from "@/lib/upload"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
+import { ImagePlus, Loader2, X, Video, Plus } from "lucide-react"
+import Image from "next/image"
+import type { Category } from "@/lib/database"
+
+const courseSchema = z.object({
+  title: z.string().min(1, "강의 제목을 입력해주세요"),
+  description: z.string().optional(),
+  price: z.string().optional(),
+  level: z.enum(["beginner", "intermediate", "advanced"]),
+  level1CategoryId: z.string().optional(),
+  level2CategoryId: z.string().optional(),
+})
+
+type CourseFormData = z.infer<typeof courseSchema>
 
 interface CreateCourseFormProps {
   instructorId: string
+  categories: Category[]
 }
 
-export function CreateCourseForm({ instructorId }: CreateCourseFormProps) {
-  const [title, setTitle] = useState("")
-  const [description, setDescription] = useState("")
-  const [price, setPrice] = useState("")
-  const [level, setLevel] = useState<"beginner" | "intermediate" | "advanced">("beginner")
-  const [thumbnailUrl, setThumbnailUrl] = useState("")
-  const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+interface VideoItem {
+  id: string
+  title: string
+  file: File
+  preview?: string
+  duration?: number
+  uploadProgress?: number
+  uploaded?: boolean
+}
+
+export function CreateCourseForm({ instructorId, categories }: CreateCourseFormProps) {
+  // Thumbnail state
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null)
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null)
+  const thumbnailInputRef = useRef<HTMLInputElement>(null)
+
+  // Video state
+  const [videos, setVideos] = useState<VideoItem[]>([])
+  const videoInputRef = useRef<HTMLInputElement>(null)
+
+  // Upload progress state
+  const [uploadStatus, setUploadStatus] = useState<string>("")
+  const [overallProgress, setOverallProgress] = useState<number>(0)
+
   const router = useRouter()
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const supabase = createClient()
-    setIsLoading(true)
-    setError(null)
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm<CourseFormData>({
+    resolver: zodResolver(courseSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      price: "",
+      level: "beginner",
+      level1CategoryId: "",
+      level2CategoryId: "",
+    },
+  })
 
-    try {
-      const { data, error } = await supabase
+  const selectedLevel1Id = watch("level1CategoryId")
+
+  // Filter categories by level
+  const level1Categories = categories.filter(c => c.level === 1)
+  const level2Categories = categories.filter(
+    c => c.level === 2 && c.parent_id === selectedLevel1Id
+  )
+
+  // Reset level 2 when level 1 changes
+  const handleLevel1Change = (value: string) => {
+    setValue("level1CategoryId", value)
+    setValue("level2CategoryId", "")
+  }
+
+  const mutation = useMutation({
+    mutationFn: async (data: CourseFormData) => {
+      const supabase = createClient()
+
+      // Calculate total items for progress
+      const totalItems = (thumbnailFile ? 1 : 0) + videos.length + 1 // +1 for course creation
+      let completedItems = 0
+
+      const updateProgress = (status: string) => {
+        completedItems++
+        setUploadStatus(status)
+        setOverallProgress(Math.round((completedItems / totalItems) * 100))
+      }
+
+      // Upload thumbnail if exists
+      let thumbnailUrl: string | null = null
+      if (thumbnailFile) {
+        setUploadStatus("썸네일 업로드 중...")
+        setOverallProgress(0)
+
+        const fileExt = thumbnailFile.name.split(".").pop() || "jpg"
+        const thumbnailFileName = `${instructorId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+
+        console.log("Uploading thumbnail:", thumbnailFileName, thumbnailFile.size, thumbnailFile.type)
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("community-media")
+          .upload(thumbnailFileName, thumbnailFile, {
+            contentType: thumbnailFile.type,
+            cacheControl: "3600",
+          })
+
+        console.log("Thumbnail upload result:", { uploadData, uploadError })
+
+        if (uploadError) {
+          throw new Error(`썸네일 업로드 실패: ${uploadError.message}`)
+        }
+
+        const { data: urlData } = supabase.storage
+          .from("community-media")
+          .getPublicUrl(uploadData.path)
+
+        thumbnailUrl = urlData.publicUrl
+        updateProgress("썸네일 업로드 완료")
+      }
+
+      // Create course
+      setUploadStatus("강의 생성 중...")
+      const { data: course, error: courseError } = await supabase
         .from("courses")
         .insert({
           instructor_id: instructorId,
-          title,
-          description,
-          price: Number.parseFloat(price),
-          level,
-          thumbnail_url: thumbnailUrl || null,
+          title: data.title,
+          description: data.description || null,
+          price: data.price ? Number.parseFloat(data.price) : 0,
+          level: data.level,
+          thumbnail_url: thumbnailUrl,
         })
         .select()
         .single()
 
-      if (error) throw error
+      if (courseError) throw courseError
+      updateProgress("강의 생성 완료")
 
-      router.push(`/instructor/courses/${data.id}`)
+      // Add categories if selected
+      const categoriesToAdd: string[] = []
+      if (data.level1CategoryId) categoriesToAdd.push(data.level1CategoryId)
+      if (data.level2CategoryId) categoriesToAdd.push(data.level2CategoryId)
+
+      for (const categoryId of categoriesToAdd) {
+        await supabase
+          .from("course_categories")
+          .insert({
+            course_id: course.id,
+            category_id: categoryId,
+          })
+      }
+
+      // Upload videos
+      for (let i = 0; i < videos.length; i++) {
+        const video = videos[i]
+        setUploadStatus(`영상 ${i + 1}/${videos.length} 업로드 중...`)
+
+        // Show uploading state on card
+        setVideos(prev => prev.map(v =>
+          v.id === video.id ? { ...v, uploadProgress: 50 } : v
+        ))
+
+        const videoExt = video.file.name.split(".").pop() || "mp4"
+        const videoFileName = `courses/${course.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${videoExt}`
+
+        const { data: videoUpload, error: videoUploadError } = await supabase.storage
+          .from("community-media")
+          .upload(videoFileName, video.file, {
+            contentType: video.file.type,
+            cacheControl: "3600",
+          })
+
+        if (videoUploadError) {
+          console.error("Failed to upload video:", videoUploadError)
+          setVideos(prev => prev.map(v =>
+            v.id === video.id ? { ...v, uploadProgress: undefined } : v
+          ))
+          continue
+        }
+
+        const { data: videoUrlData } = supabase.storage
+          .from("community-media")
+          .getPublicUrl(videoUpload.path)
+
+        // Create course video record
+        const { error: videoError } = await supabase
+          .from("course_videos")
+          .insert({
+            course_id: course.id,
+            title: video.title || `영상 ${i + 1}`,
+            video_url: videoUrlData.publicUrl,
+            duration: video.duration || 0,
+            order_index: i,
+          })
+
+        if (videoError) {
+          console.error("Failed to create video record:", videoError)
+        }
+
+        setVideos(prev => prev.map(v =>
+          v.id === video.id ? { ...v, uploaded: true, uploadProgress: 100 } : v
+        ))
+        updateProgress(`영상 ${i + 1} 업로드 완료`)
+      }
+
+      setUploadStatus("완료!")
+      setOverallProgress(100)
+      return course
+    },
+    onSuccess: (course) => {
+      router.push(`/instructor/courses/${course.id}`)
       router.refresh()
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "강의 생성 중 오류가 발생했습니다")
-    } finally {
-      setIsLoading(false)
+    },
+  })
+
+  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert("이미지 크기는 5MB를 초과할 수 없습니다")
+        return
+      }
+      // Revoke previous preview URL if exists
+      if (thumbnailPreview) {
+        URL.revokeObjectURL(thumbnailPreview)
+      }
+      setThumbnailFile(file)
+      setThumbnailPreview(URL.createObjectURL(file))
+    }
+    // Reset input to allow re-selecting the same file
+    e.target.value = ""
+  }
+
+  const handleRemoveThumbnail = () => {
+    if (thumbnailPreview) {
+      URL.revokeObjectURL(thumbnailPreview)
+    }
+    setThumbnailFile(null)
+    setThumbnailPreview(null)
+    // Reset file input
+    if (thumbnailInputRef.current) {
+      thumbnailInputRef.current.value = ""
     }
   }
 
+  const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files) return
+
+    Array.from(files).forEach((file) => {
+      if (file.size > 500 * 1024 * 1024) {
+        alert(`${file.name}: 영상 크기는 500MB를 초과할 수 없습니다`)
+        return
+      }
+
+      const videoId = `${Date.now()}-${Math.random().toString(36).substring(7)}`
+      const preview = URL.createObjectURL(file)
+
+      // Get video duration using a separate blob URL
+      const durationUrl = URL.createObjectURL(file)
+      const videoEl = document.createElement("video")
+      videoEl.preload = "metadata"
+      videoEl.onloadedmetadata = () => {
+        setVideos((prev) =>
+          prev.map((v) =>
+            v.id === videoId ? { ...v, duration: Math.round(videoEl.duration) } : v
+          )
+        )
+        URL.revokeObjectURL(durationUrl) // Only revoke the duration URL, not the preview
+      }
+      videoEl.src = durationUrl
+
+      setVideos((prev) => [
+        ...prev,
+        {
+          id: videoId,
+          title: file.name.replace(/\.[^/.]+$/, ""),
+          file,
+          preview,
+        },
+      ])
+    })
+
+    e.target.value = ""
+  }
+
+  const handleRemoveVideo = (id: string) => {
+    setVideos((prev) => {
+      const video = prev.find((v) => v.id === id)
+      if (video?.preview) {
+        URL.revokeObjectURL(video.preview)
+      }
+      return prev.filter((v) => v.id !== id)
+    })
+  }
+
+  const handleVideoTitleChange = (id: string, newTitle: string) => {
+    setVideos((prev) =>
+      prev.map((v) => (v.id === id ? { ...v, title: newTitle } : v))
+    )
+  }
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, "0")}`
+  }
+
+  const onSubmit = (data: CourseFormData) => {
+    mutation.mutate(data)
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-2">
-        <Label htmlFor="title">강의 제목 *</Label>
-        <Input
-          id="title"
-          placeholder="예: 기초 주짓수 완전정복"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          required
-        />
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {/* Top Section: Thumbnail + Course Info */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left: Thumbnail Upload */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">썸네일</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {thumbnailPreview ? (
+                <div className="relative aspect-video rounded-lg overflow-hidden border">
+                  <Image
+                    src={thumbnailPreview}
+                    alt="썸네일 미리보기"
+                    fill
+                    className="object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveThumbnail}
+                    className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => thumbnailInputRef.current?.click()}
+                  className="w-full aspect-video rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground"
+                >
+                  <ImagePlus className="h-10 w-10" />
+                  <span className="text-sm">클릭하여 썸네일 업로드</span>
+                  <span className="text-xs">권장: 16:9 비율, 최대 5MB</span>
+                </button>
+              )}
+              <input
+                ref={thumbnailInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleThumbnailChange}
+                className="hidden"
+              />
+              {thumbnailPreview && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => thumbnailInputRef.current?.click()}
+                >
+                  썸네일 변경
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Right: Course Info */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">강의 정보</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">강의 제목 *</Label>
+              <Input
+                id="title"
+                placeholder="예: 기초 주짓수 완전정복"
+                {...register("title")}
+              />
+              {errors.title && (
+                <p className="text-sm text-red-500">{errors.title.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">강의 설명</Label>
+              <Textarea
+                id="description"
+                placeholder="강의에 대한 설명을 입력하세요"
+                rows={4}
+                {...register("description")}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="category1">종목 (1차)</Label>
+                <Select
+                  value={selectedLevel1Id || ""}
+                  onValueChange={handleLevel1Change}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="종목 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {level1Categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name_ko}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="category2">포지션 (2차)</Label>
+                <Select
+                  value={watch("level2CategoryId") || ""}
+                  onValueChange={(value) => setValue("level2CategoryId", value)}
+                  disabled={!selectedLevel1Id}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={selectedLevel1Id ? "포지션 선택" : "종목을 먼저 선택"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {level2Categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name_ko}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="price">가격 (원)</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  placeholder="50000"
+                  {...register("price")}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="level">난이도</Label>
+                <Select
+                  value={watch("level")}
+                  onValueChange={(value: "beginner" | "intermediate" | "advanced") => setValue("level", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="beginner">초급</SelectItem>
+                    <SelectItem value="intermediate">중급</SelectItem>
+                    <SelectItem value="advanced">고급</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="description">강의 설명</Label>
-        <Textarea
-          id="description"
-          placeholder="강의에 대한 설명을 입력하세요"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          rows={4}
-        />
-      </div>
+      {/* Bottom Section: Video Upload */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Video className="h-5 w-5" />
+            강의 영상
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {/* Video Cards */}
+            {videos.map((video, index) => (
+              <div
+                key={video.id}
+                className="relative group"
+              >
+                <div className="aspect-square rounded-lg overflow-hidden border bg-black relative">
+                  {video.preview && (
+                    <video
+                      src={video.preview}
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                  {/* Order Badge */}
+                  <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">
+                    {index + 1}
+                  </div>
+                  {/* Duration Badge */}
+                  {video.duration && (
+                    <div className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-black/70 text-white text-xs">
+                      {formatDuration(video.duration)}
+                    </div>
+                  )}
+                  {/* Upload Progress Overlay */}
+                  {video.uploadProgress !== undefined && video.uploadProgress < 100 && (
+                    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center">
+                      <div className="text-white text-lg font-bold">
+                        {video.uploadProgress}%
+                      </div>
+                      <Progress value={video.uploadProgress} className="w-3/4 mt-2" />
+                    </div>
+                  )}
+                  {/* Uploaded Check */}
+                  {video.uploaded && (
+                    <div className="absolute inset-0 bg-green-500/20 flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
+                        <span className="text-white text-lg">✓</span>
+                      </div>
+                    </div>
+                  )}
+                  {/* Delete Button */}
+                  {!mutation.isPending && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveVideo(video.id)}
+                      className="absolute top-2 right-2 p-1 bg-black/50 hover:bg-destructive rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+                {/* Video Title Input */}
+                <Input
+                  value={video.title}
+                  onChange={(e) => handleVideoTitleChange(video.id, e.target.value)}
+                  placeholder="영상 제목"
+                  className="mt-2 text-sm h-8"
+                  disabled={mutation.isPending}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {(video.file.size / (1024 * 1024)).toFixed(1)}MB
+                </p>
+              </div>
+            ))}
 
-      <div className="space-y-2">
-        <Label htmlFor="price">가격 (원) *</Label>
-        <Input
-          id="price"
-          type="number"
-          placeholder="50000"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          required
-        />
-      </div>
+            {/* Add Video Button */}
+            {!mutation.isPending && (
+              <button
+                type="button"
+                onClick={() => videoInputRef.current?.click()}
+                className="aspect-square rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 hover:bg-muted/50 transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground"
+              >
+                <Plus className="h-8 w-8" />
+                <span className="text-xs font-medium">영상 추가</span>
+              </button>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground mt-4">
+            MP4, WebM 지원 (최대 500MB) · 여러 영상을 한번에 선택할 수 있습니다
+          </p>
+          <input
+            ref={videoInputRef}
+            type="file"
+            accept="video/*"
+            multiple
+            onChange={handleVideoChange}
+            className="hidden"
+          />
+        </CardContent>
+      </Card>
 
-      <div className="space-y-2">
-        <Label htmlFor="level">난이도 *</Label>
-        <Select value={level} onValueChange={(value: any) => setLevel(value)}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="beginner">초급</SelectItem>
-            <SelectItem value="intermediate">중급</SelectItem>
-            <SelectItem value="advanced">고급</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      {/* Upload Progress */}
+      {mutation.isPending && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>{uploadStatus}</span>
+                <span>{overallProgress}%</span>
+              </div>
+              <Progress value={overallProgress} />
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-      <div className="space-y-2">
-        <Label htmlFor="thumbnail">썸네일 URL (선택)</Label>
-        <Input
-          id="thumbnail"
-          type="url"
-          placeholder="https://example.com/image.jpg"
-          value={thumbnailUrl}
-          onChange={(e) => setThumbnailUrl(e.target.value)}
-        />
-      </div>
+      {/* Error Message */}
+      {mutation.error && (
+        <p className="text-sm text-red-500">{mutation.error.message}</p>
+      )}
 
-      {error && <p className="text-sm text-red-500">{error}</p>}
-
+      {/* Submit Buttons */}
       <div className="flex gap-4">
-        <Button type="button" variant="outline" className="flex-1 bg-transparent" onClick={() => router.back()}>
+        <Button
+          type="button"
+          variant="outline"
+          className="flex-1"
+          onClick={() => router.back()}
+          disabled={mutation.isPending}
+        >
           취소
         </Button>
-        <Button type="submit" className="flex-1" disabled={isLoading}>
-          {isLoading ? "생성 중..." : "강의 만들기"}
+        <Button type="submit" className="flex-1" disabled={mutation.isPending}>
+          {mutation.isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              업로드 중...
+            </>
+          ) : (
+            "강의 만들기"
+          )}
         </Button>
       </div>
     </form>
   )
 }
+
