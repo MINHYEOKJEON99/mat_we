@@ -1,3 +1,6 @@
+// Auth
+export * from "./auth"
+
 // Posts
 export * from "./posts"
 

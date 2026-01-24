@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { signOut } from "@/lib/api/client";
 
 export default function LogoutPage() {
-  const router = useRouter();
   const [status, setStatus] = useState<"logging-out" | "complete" | "error">("logging-out");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -15,68 +14,37 @@ export default function LogoutPage() {
         console.log("[Logout] Starting logout process...");
         setStatus("logging-out");
 
-        // 1. 클라이언트에서 Supabase 로그아웃
-        const { createClient } = await import("@/lib/client");
-        const supabase = createClient();
-        await supabase.auth.signOut();
-        console.log("[Logout] Supabase signOut successful");
-
-        // 2. 서버 사이드에서 쿠키 삭제
-        await fetch('/api/logout', {
-          method: 'POST',
-          credentials: 'include',
-        });
-
-        console.log("[Logout] Server-side cookies cleared");
-
-        // 3. 클라이언트 사이드에서 추가 쿠키 삭제
-        const cookies = document.cookie.split(';');
-        const domain = window.location.hostname;
-        const domainParts = domain.split('.');
-
-        for (let cookie of cookies) {
-          const eqPos = cookie.indexOf('=');
-          const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
-
-          if (!name) continue;
-
-          // 기본 삭제
-          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-          document.cookie = `${name}=;max-age=0;path=/`;
-
-          // 도메인 지정 삭제
-          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${domain}`;
-          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.${domain}`;
-
-          // 상위 도메인들에서 쿠키 삭제
-          for (let i = 0; i < domainParts.length; i++) {
-            const currentDomain = domainParts.slice(i).join('.');
-            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.${currentDomain}`;
-            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${currentDomain}`;
-          }
+        // 1. 클라이언트에서 스토리지 정리
+        try {
+          signOut();
+          console.log("[Logout] Storage cleanup successful");
+        } catch (error) {
+          console.error("[Logout] Error during storage cleanup, continuing anyway:", error);
         }
 
-        console.log("[Logout] Client-side cookies cleared");
+        // 2. 서버 사이드에서 쿠키 삭제 (타임아웃 설정)
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-        // 4. 세션 스토리지와 로컬 스토리지 클리어
-        sessionStorage.clear();
-
-        if (typeof window !== "undefined") {
-          const keys = Object.keys(localStorage);
-          keys.forEach((key) => {
-            if (key.includes("supabase") || key.includes("auth")) {
-              localStorage.removeItem(key);
-            }
+          await fetch('/api/logout', {
+            method: 'POST',
+            credentials: 'include',
+            signal: controller.signal,
           });
+
+          clearTimeout(timeoutId);
+          console.log("[Logout] Server-side cookies cleared");
+        } catch (error) {
+          console.error("[Logout] Error during server logout, continuing anyway:", error);
         }
 
-        console.log("[Logout] Storage cleared");
         setStatus("complete");
 
-        // 5. 홈으로 리다이렉트
+        // 3. 홈으로 리다이렉트 (전체 페이지 새로고침)
         console.log("[Logout] Redirecting to home...");
         setTimeout(() => {
-          router.push("/");
+          window.location.href = "/";
         }, 500);
 
       } catch (error) {
@@ -84,15 +52,15 @@ export default function LogoutPage() {
         setStatus("error");
         setErrorMessage(error instanceof Error ? error.message : "로그아웃 중 오류가 발생했습니다");
 
-        // 에러가 발생해도 5초 후 홈으로 이동
+        // 에러가 발생해도 5초 후 홈으로 이동 (전체 페이지 새로고침)
         setTimeout(() => {
-          router.push("/");
+          window.location.href = "/";
         }, 5000);
       }
     };
 
     performLogout();
-  }, [router]);
+  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
