@@ -83,14 +83,19 @@ export async function uploadImage(
   const supabase = createClient();
 
   try {
+    console.log("[uploadImage] Starting compression...", file.name, file.size);
+
     // Compress image
     const compressedFile = await compressImage(file);
+    console.log("[uploadImage] Compression complete. New size:", compressedFile.size);
 
     // Generate unique filename
     const fileExt = "webp";
     const fileName = `${userId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-    // Upload to Supabase storage
+    console.log("[uploadImage] Starting upload to community-media bucket...", fileName);
+
+    // Upload to Supabase storage (직접 await로 실제 에러 확인)
     const { data, error } = await supabase.storage
       .from("community-media")
       .upload(fileName, compressedFile, {
@@ -98,6 +103,18 @@ export async function uploadImage(
         cacheControl: "3600",
         upsert: false,
       });
+
+    console.log("[uploadImage] Upload result:", { data, error });
+
+    // 에러 상세 정보 출력
+    if (error) {
+      console.error("[uploadImage] Detailed error:", {
+        message: error.message,
+        statusCode: (error as any).statusCode,
+        error: (error as any).error,
+        details: error
+      });
+    }
 
     if (error) {
       return { message: `이미지 업로드 실패: ${error.message}` };
@@ -108,11 +125,14 @@ export async function uploadImage(
       .from("community-media")
       .getPublicUrl(data.path);
 
+    console.log("[uploadImage] Upload successful:", urlData.publicUrl);
+
     return {
       url: urlData.publicUrl,
       path: data.path,
     };
   } catch (error) {
+    console.error("[uploadImage] Upload error:", error);
     return {
       message: error instanceof Error ? error.message : "이미지 업로드 중 오류가 발생했습니다.",
     };

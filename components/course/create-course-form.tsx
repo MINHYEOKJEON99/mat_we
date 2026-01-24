@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useMutation } from "@tanstack/react-query"
 import { createClient } from "@/lib/client"
-// import { uploadImage, compressImage } from "@/lib/upload"
+import { uploadCourseImage } from "@/app/instructor/courses/new/actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -114,30 +114,29 @@ export function CreateCourseForm({ instructorId, categories }: CreateCourseFormP
         setUploadStatus("썸네일 업로드 중...")
         setOverallProgress(0)
 
-        const fileExt = thumbnailFile.name.split(".").pop() || "jpg"
-        const thumbnailFileName = `${instructorId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+        console.log("Uploading thumbnail:", thumbnailFile.size, thumbnailFile.type)
 
-        console.log("Uploading thumbnail:", thumbnailFileName, thumbnailFile.size, thumbnailFile.type)
+        try {
+          // Server Action을 통한 업로드
+          const formData = new FormData()
+          formData.append("file", thumbnailFile)
+          formData.append("userId", instructorId)
 
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from("community-media")
-          .upload(thumbnailFileName, thumbnailFile, {
-            contentType: thumbnailFile.type,
-            cacheControl: "3600",
-          })
+          const uploadResult = await uploadCourseImage(formData)
 
-        console.log("Thumbnail upload result:", { uploadData, uploadError })
+          console.log("Thumbnail upload result:", uploadResult)
 
-        if (uploadError) {
-          throw new Error(`썸네일 업로드 실패: ${uploadError.message}`)
+          // 에러 체크
+          if ('error' in uploadResult) {
+            throw new Error(uploadResult.error)
+          }
+
+          thumbnailUrl = uploadResult.url
+          updateProgress("썸네일 업로드 완료")
+        } catch (error) {
+          console.error("Thumbnail upload error:", error)
+          throw new Error(`썸네일 업로드 중 오류: ${error instanceof Error ? error.message : '알 수 없는 오류'}`)
         }
-
-        const { data: urlData } = supabase.storage
-          .from("community-media")
-          .getPublicUrl(uploadData.path)
-
-        thumbnailUrl = urlData.publicUrl
-        updateProgress("썸네일 업로드 완료")
       }
 
       // Create course
@@ -182,47 +181,47 @@ export function CreateCourseForm({ instructorId, categories }: CreateCourseFormP
           v.id === video.id ? { ...v, uploadProgress: 50 } : v
         ))
 
-        const videoExt = video.file.name.split(".").pop() || "mp4"
-        const videoFileName = `courses/${course.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${videoExt}`
+        try {
+          // Server Action을 통한 비디오 업로드
+          const videoFormData = new FormData()
+          videoFormData.append("file", video.file)
+          videoFormData.append("userId", `courses/${course.id}`)
 
-        const { data: videoUpload, error: videoUploadError } = await supabase.storage
-          .from("community-media")
-          .upload(videoFileName, video.file, {
-            contentType: video.file.type,
-            cacheControl: "3600",
-          })
+          const videoUploadResult = await uploadCourseImage(videoFormData)
 
-        if (videoUploadError) {
-          console.error("Failed to upload video:", videoUploadError)
+          if ('error' in videoUploadResult) {
+            console.error("Failed to upload video:", videoUploadResult.error)
+            setVideos(prev => prev.map(v =>
+              v.id === video.id ? { ...v, uploadProgress: undefined } : v
+            ))
+            continue
+          }
+
+          // Create course video record
+          const { error: videoError } = await supabase
+            .from("course_videos")
+            .insert({
+              course_id: course.id,
+              title: video.title || `영상 ${i + 1}`,
+              video_url: videoUploadResult.url,
+              duration: video.duration || 0,
+              order_index: i,
+            })
+
+          if (videoError) {
+            console.error("Failed to create video record:", videoError)
+          }
+
+          setVideos(prev => prev.map(v =>
+            v.id === video.id ? { ...v, uploaded: true, uploadProgress: 100 } : v
+          ))
+          updateProgress(`영상 ${i + 1} 업로드 완료`)
+        } catch (error) {
+          console.error("Video upload error:", error)
           setVideos(prev => prev.map(v =>
             v.id === video.id ? { ...v, uploadProgress: undefined } : v
           ))
-          continue
         }
-
-        const { data: videoUrlData } = supabase.storage
-          .from("community-media")
-          .getPublicUrl(videoUpload.path)
-
-        // Create course video record
-        const { error: videoError } = await supabase
-          .from("course_videos")
-          .insert({
-            course_id: course.id,
-            title: video.title || `영상 ${i + 1}`,
-            video_url: videoUrlData.publicUrl,
-            duration: video.duration || 0,
-            order_index: i,
-          })
-
-        if (videoError) {
-          console.error("Failed to create video record:", videoError)
-        }
-
-        setVideos(prev => prev.map(v =>
-          v.id === video.id ? { ...v, uploaded: true, uploadProgress: 100 } : v
-        ))
-        updateProgress(`영상 ${i + 1} 업로드 완료`)
       }
 
       setUploadStatus("완료!")
