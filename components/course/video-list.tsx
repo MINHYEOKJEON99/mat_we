@@ -7,9 +7,11 @@ import { PlayCircle } from "lucide-react"
 interface VideoListProps {
   videos: CourseVideo[]
   courseId: string
+  currentVideoIndex?: number
+  onVideoSelect?: (index: number) => void
 }
 
-export function VideoList({ videos }: VideoListProps) {
+export function VideoList({ videos, currentVideoIndex = 0, onVideoSelect }: VideoListProps) {
   if (videos.length === 0) {
     return (
       <Card>
@@ -32,11 +34,18 @@ export function VideoList({ videos }: VideoListProps) {
         {videos.map((video, index) => (
           <div
             key={video.id}
-            className="flex items-start gap-3 p-3 rounded-lg hover:bg-accent cursor-pointer transition-colors"
+            onClick={() => onVideoSelect?.(index)}
+            className={`flex items-start gap-3 p-3 rounded-lg hover:bg-accent cursor-pointer transition-colors ${
+              currentVideoIndex === index ? "bg-accent border-2 border-primary" : ""
+            }`}
           >
-            <PlayCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+            <PlayCircle className={`h-5 w-5 flex-shrink-0 mt-0.5 ${
+              currentVideoIndex === index ? "text-primary" : ""
+            }`} />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium line-clamp-2">
+              <p className={`text-sm font-medium line-clamp-2 ${
+                currentVideoIndex === index ? "text-primary" : ""
+              }`}>
                 {index + 1}. {video.title}
               </p>
               {video.duration && (

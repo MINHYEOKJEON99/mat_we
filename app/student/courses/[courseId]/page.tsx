@@ -1,68 +1,104 @@
-import { createClient } from "@/lib/server"
-import { redirect, notFound } from "next/navigation"
+"use client"
+
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { createClient } from "@/lib/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { VideoPlayer } from "@/components/course/video-player"
 import { VideoList } from "@/components/course/video-list"
+import { CourseComments } from "@/components/course/course-comments"
+import type { CourseVideo } from "@/lib/database"
 
-export default async function StudentCourseViewPage({ params }: { params: Promise<{ courseId: string }> }) {
-  const { courseId } = await params
-  const supabase = await createClient()
+interface PageProps {
+  params: Promise<{ courseId: string }>
+}
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+export default function StudentCourseViewPage({ params }: PageProps) {
+  const router = useRouter()
+  const supabase = createClient()
 
-  if (!user) {
-    redirect("/auth/login")
+  const [courseId, setCourseId] = useState<string>("")
+  const [userId, setUserId] = useState<string>("")
+  const [course, setCourse] = useState<any>(null)
+  const [videos, setVideos] = useState<CourseVideo[]>([])
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    params.then(p => setCourseId(p.courseId))
+  }, [params])
+
+  useEffect(() => {
+    if (!courseId) return
+
+    async function loadData() {
+      // Check auth
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push("/auth/login")
+        return
+      }
+
+      setUserId(user.id)
+
+      // Check enrollment
+      const { data: enrollment } = await supabase
+        .from("enrollments")
+        .select("*")
+        .eq("student_id", user.id)
+        .eq("course_id", courseId)
+        .single()
+
+      if (!enrollment) {
+        router.push(`/courses/${courseId}`)
+        return
+      }
+
+      // Get course
+      const { data: courseData } = await supabase
+        .from("courses")
+        .select("*, instructor:profiles!courses_instructor_id_fkey(*)")
+        .eq("id", courseId)
+        .single()
+
+      if (!courseData) {
+        router.push("/404")
+        return
+      }
+
+      // Get videos
+      const { data: videosData } = await supabase
+        .from("course_videos")
+        .select("*")
+        .eq("course_id", courseId)
+        .order("order_index", { ascending: true })
+
+      setCourse(courseData)
+      setVideos(videosData || [])
+      setLoading(false)
+    }
+
+    loadData()
+  }, [courseId, router, supabase])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">로딩 중...</p>
+      </div>
+    )
   }
-
-  // Check if enrolled
-  const { data: enrollment } = await supabase
-    .from("enrollments")
-    .select("*")
-    .eq("student_id", user.id)
-    .eq("course_id", courseId)
-    .single()
-
-  if (!enrollment) {
-    redirect(`/courses/${courseId}`)
-  }
-
-  // Get course details
-  const { data: course } = await supabase
-    .from("courses")
-    .select("*, instructor:profiles!courses_instructor_id_fkey(*)")
-    .eq("id", courseId)
-    .single()
 
   if (!course) {
-    notFound()
+    return null
   }
 
-  // Get course videos
-  const { data: videos } = await supabase
-    .from("course_videos")
-    .select("*")
-    .eq("course_id", courseId)
-    .order("order_index", { ascending: true })
-
-  const currentVideo = videos && videos.length > 0 ? videos[0] : null
+  const currentVideo = videos[currentVideoIndex]
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/dashboard" className="text-2xl font-bold">
-            Mat We
-          </Link>
-          <Button asChild variant="ghost">
-            <Link href="/student/courses">← 내 강의</Link>
-          </Button>
-        </div>
-      </header>
-
       <main className="container mx-auto px-4 py-8">
         <div className="mb-4">
           <h1 className="text-2xl font-bold mb-1">{course.title}</h1>
@@ -73,6 +109,19 @@ export default async function StudentCourseViewPage({ params }: { params: Promis
           <div className="lg:col-span-2 space-y-6">
             {currentVideo && currentVideo.mux_playback_id ? (
               <VideoPlayer playbackId={currentVideo.mux_playback_id} title={currentVideo.title} />
+            ) : currentVideo && currentVideo.video_url ? (
+              <div className="w-full rounded-lg overflow-hidden bg-black">
+                <video
+                  key={currentVideo.id}
+                  controls
+                  className="w-full aspect-video"
+                  src={currentVideo.video_url}
+                  title={currentVideo.title}
+                >
+                  <track kind="captions" />
+                  브라우저가 비디오 태그를 지원하지 않습니다.
+                </video>
+              </div>
             ) : (
               <Card>
                 <CardContent className="flex items-center justify-center h-96">
@@ -84,31 +133,35 @@ export default async function StudentCourseViewPage({ params }: { params: Promis
               </Card>
             )}
 
-            {currentVideo && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>{currentVideo.title}</CardTitle>
-                  {currentVideo.description && <CardDescription>{currentVideo.description}</CardDescription>}
-                </CardHeader>
-                {currentVideo.duration && (
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      재생시간: {Math.floor(currentVideo.duration / 60)}분 {currentVideo.duration % 60}초
-                    </p>
-                  </CardContent>
-                )}
-              </Card>
-            )}
-
             <Card>
               <CardHeader>
-                <CardTitle>강의 설명</CardTitle>
+                <CardTitle>강의 정보</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground leading-relaxed">{course.description}</p>
+              <CardContent className="space-y-4">
+                {currentVideo && (
+                  <div className="pb-4 border-b">
+                    <h3 className="font-semibold mb-1">{currentVideo.title}</h3>
+                    {currentVideo.description && (
+                      <p className="text-sm text-muted-foreground mb-2">{currentVideo.description}</p>
+                    )}
+                    {currentVideo.duration && (
+                      <p className="text-sm text-muted-foreground">
+                        재생시간: {Math.floor(currentVideo.duration / 60)}분 {currentVideo.duration % 60}초
+                      </p>
+                    )}
+                  </div>
+                )}
+                <div>
+                  <h3 className="font-semibold mb-2">강의 설명</h3>
+                  <p className="text-muted-foreground leading-relaxed">{course.description}</p>
+                </div>
               </CardContent>
             </Card>
 
+            {userId && <CourseComments courseId={courseId} currentUserId={userId} />}
+          </div>
+
+          <div className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>강사와 연결하기</CardTitle>
@@ -120,10 +173,13 @@ export default async function StudentCourseViewPage({ params }: { params: Promis
                 </Button>
               </CardContent>
             </Card>
-          </div>
 
-          <div>
-            <VideoList videos={videos || []} courseId={courseId} />
+            <VideoList
+              videos={videos}
+              courseId={courseId}
+              currentVideoIndex={currentVideoIndex}
+              onVideoSelect={setCurrentVideoIndex}
+            />
           </div>
         </div>
       </main>
