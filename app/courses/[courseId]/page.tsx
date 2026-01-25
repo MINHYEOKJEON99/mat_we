@@ -5,6 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { EnrollButton } from "@/components/course/enroll-button";
+import { Play, Lock, Clock } from "lucide-react";
+import Image from "next/image";
 
 export default async function CourseDetailPage({ params }: { params: Promise<{ courseId: string }> }) {
   const { courseId } = await params;
@@ -48,6 +50,11 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
     redirect(`/student/courses/${courseId}`);
   }
 
+  // Calculate total duration
+  const totalDuration = videos?.reduce((acc, video) => acc + (video.duration || 0), 0) || 0;
+  const totalHours = Math.floor(totalDuration / 3600);
+  const totalMinutes = Math.floor((totalDuration % 3600) / 60);
+
   return (
     <div className="min-h-screen bg-background">
       <main className="container mx-auto px-4 py-8 max-w-4xl">
@@ -75,18 +82,60 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
                   </CardContent>
                 </Card>
               ) : (
-                <div className="space-y-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {videos.map((video, index) => (
-                    <Card key={video.id}>
-                      <CardHeader className="py-4">
-                        <CardTitle className="text-base">
+                    <Card key={video.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                      <div className="relative aspect-video bg-muted">
+                        {/* Mux 썸네일 또는 기본 배경 */}
+                        {video.mux_playback_id ? (
+                          <Image
+                            src={`https://image.mux.com/${video.mux_playback_id}/thumbnail.jpg?width=640&height=360&fit_mode=smartcrop`}
+                            alt={video.title}
+                            fill
+                            className="object-cover"
+                          />
+                        ) : course.thumbnail_url ? (
+                          <div />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Play className="h-16 w-16 text-muted-foreground/30" />
+                          </div>
+                        )}
+
+                        {/* 오버레이 */}
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                          <div className="text-center">
+                            <Lock className="h-8 w-8 text-white mx-auto mb-2" />
+                            <p className="text-white text-sm font-medium">수강 후 시청 가능</p>
+                          </div>
+                        </div>
+
+                        {/* 순서 뱃지 */}
+                        <div className="absolute top-2 left-2">
+                          <Badge variant="secondary" className="bg-black/60 text-white border-0">
+                            {index + 1}
+                          </Badge>
+                        </div>
+
+                        {/* 재생시간 */}
+                        {video.duration && (
+                          <div className="absolute bottom-2 right-2">
+                            <Badge
+                              variant="secondary"
+                              className="bg-black/60 text-white border-0 flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {Math.floor(video.duration / 60)}:{(video.duration % 60).toString().padStart(2, "0")}
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+
+                      <CardHeader className="py-3">
+                        <CardTitle className="text-sm font-medium line-clamp-2">
                           {index + 1}. {video.title}
                         </CardTitle>
-                        {video.description && <CardDescription>{video.description}</CardDescription>}
-                        {video.duration && (
-                          <p className="text-sm text-muted-foreground">
-                            {Math.floor(video.duration / 60)}분 {video.duration % 60}초
-                          </p>
+                        {video.description && (
+                          <CardDescription className="text-xs line-clamp-1">{video.description}</CardDescription>
                         )}
                       </CardHeader>
                     </Card>
@@ -109,8 +158,17 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
               <CardContent className="space-y-4">
                 <EnrollButton courseId={courseId} studentId={user.id} />
                 <div className="text-sm text-muted-foreground space-y-2">
+                  <p className="flex items-center gap-2">
+                    <Play className="h-4 w-4" />
+                    {videos?.length || 0}개의 강의 영상
+                  </p>
+                  {totalDuration > 0 && (
+                    <p className="flex items-center gap-2">
+                      <Clock className="h-4 w-4" />총 {totalHours > 0 ? `${totalHours}시간 ` : ""}
+                      {totalMinutes}분
+                    </p>
+                  )}
                   <p>• 평생 수강 가능</p>
-                  <p>• {videos?.length || 0}개의 강의 영상</p>
                   <p>• 모바일/태블릿 지원</p>
                 </div>
               </CardContent>
