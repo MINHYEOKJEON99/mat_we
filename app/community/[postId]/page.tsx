@@ -114,17 +114,7 @@ export default async function PostDetailPage({ params }: { params: Promise<{ pos
         </div>
 
         {/* Comments Section */}
-        <div className="border rounded-sm">
-          <div className="p-4 border-b bg-muted/30">
-            <h2 className="font-medium flex items-center gap-2">
-              <MessageCircle className="h-4 w-4" />
-              댓글 {post.comments_count || 0}개
-            </h2>
-          </div>
-          <div className="p-4">
-            <CommentSection postId={postId} userId={user.id} />
-          </div>
-        </div>
+        <CommentSection postId={postId} userId={user.id} />
       </main>
     </div>
   )

@@ -88,34 +88,13 @@ export function useAuthorPosts(authorId: string | undefined) {
 
 // 게시글 댓글 목록
 export function usePostComments(postId: string | undefined) {
+  const supabase = createClient()
+
   return useQuery({
     queryKey: postKeys.comments(postId || ""),
     queryFn: async () => {
       if (!postId) return []
 
-      const supabase = createClient()
-
-      // Get user session for authenticated request
-      const { data: { session } } = await supabase.auth.getSession()
-
-      if (!session?.access_token) {
-        // 비로그인 사용자도 댓글 조회 가능 (익명 키 사용)
-        const { data, error } = await supabase
-          .from("post_comments")
-          .select(`
-            *,
-            author:profiles!post_comments_author_id_fkey (
-              id, display_name, avatar_url
-            )
-          `)
-          .eq("post_id", postId)
-          .order("created_at", { ascending: true })
-
-        if (error) throw error
-        return data as (PostComment & { author: { id: string; display_name: string; avatar_url: string | null } })[]
-      }
-
-      // 로그인 사용자는 access token으로 요청
       const { data, error } = await supabase
         .from("post_comments")
         .select(`
@@ -131,6 +110,8 @@ export function usePostComments(postId: string | undefined) {
       return data as (PostComment & { author: { id: string; display_name: string; avatar_url: string | null } })[]
     },
     enabled: !!postId,
+    staleTime: 0,
+    refetchOnMount: true,
   })
 }
 
