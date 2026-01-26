@@ -8,7 +8,7 @@ const ambassadors = [
     name: "김태현",
     belt: "블랙벨트 3단",
     specialty: "스포츠 주짓수",
-    image: "/korean-jiu-jitsu-black-belt-instructor-male.jpg",
+    image: "https://images.unsplash.com/photo-1583468982228-19f19164aee2?w=600&q=80",
     stats: "200+ 수강생 · 15년 경력",
   },
   {
@@ -16,7 +16,7 @@ const ambassadors = [
     name: "이서연",
     belt: "블랙벨트 2단",
     specialty: "셀프 디펜스",
-    image: "/korean-jiu-jitsu-black-belt-instructor-female.jpg",
+    image: "https://images.unsplash.com/photo-1594381898411-846e7d193883?w=600&q=80",
     stats: "150+ 수강생 · 12년 경력",
   },
   {
@@ -24,7 +24,7 @@ const ambassadors = [
     name: "박준호",
     belt: "블랙벨트 4단",
     specialty: "컴피티션 트레이닝",
-    image: "/korean-jiu-jitsu-champion-male-instructor.jpg",
+    image: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&q=80",
     stats: "300+ 수강생 · 20년 경력",
   },
 ]
