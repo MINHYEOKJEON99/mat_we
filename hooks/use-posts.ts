@@ -86,7 +86,7 @@ export function useAuthorPosts(authorId: string | undefined) {
   })
 }
 
-// 게시글 댓글 목록
+// 게시글 댓글 목록 (대댓글 포함)
 export function usePostComments(postId: string | undefined) {
   const supabase = createClient()
 
@@ -107,11 +107,15 @@ export function usePostComments(postId: string | undefined) {
         .order("created_at", { ascending: true })
 
       if (error) throw error
-      return data as (PostComment & { author: { id: string; display_name: string; avatar_url: string | null } })[]
+      return data as (PostComment & {
+        author: { id: string; display_name: string; avatar_url: string | null }
+        parent_id?: string | null
+      })[]
     },
     enabled: !!postId,
-    staleTime: 0,
-    refetchOnMount: true,
+    staleTime: 1000 * 60,
+    refetchOnMount: "always",
+    placeholderData: [],
   })
 }
 
@@ -212,12 +216,12 @@ export function useDeletePost() {
   })
 }
 
-// 댓글 작성
+// 댓글 작성 (대댓글 지원)
 export function useCreateComment() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (data: { post_id: string; author_id: string; content: string }) => {
+    mutationFn: async (data: { post_id: string; author_id: string; content: string; parent_id?: string | null }) => {
       const supabase = createClient()
 
       // Get user session
