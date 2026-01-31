@@ -53,19 +53,16 @@ export function HeaderClient({ initialUser, initialProfile }: HeaderClientProps)
     "showUserMenu:",
     showUserMenu,
     "showAuthButtons:",
-    showAuthButtons
+    showAuthButtons,
   );
 
   return (
     <header
-      className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
-      role="banner">
+      className="sticky top-0 shadow-lg z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      role="banner"
+    >
       <div className="container mx-auto px-4 max-w-7xl">
         <div className="flex h-16 items-center justify-between">
-          <Link href="/" className="flex items-center space-x-2" aria-label="Mat We 홈으로 이동">
-            <span className="text-2xl font-bold tracking-tight">Mat We</span>
-          </Link>
-
           <nav className="hidden md:flex items-center gap-6" aria-label="메인 네비게이션">
             <Link href="/courses" className="text-sm font-medium hover:text-primary transition-colors">
               강의
@@ -77,6 +74,11 @@ export function HeaderClient({ initialUser, initialProfile }: HeaderClientProps)
               커뮤니티
             </Link>
           </nav>
+          <Link href="/" className="flex items-center space-x-2" aria-label="Mat We 홈으로 이동">
+            <span className="text-2xl font-bold tracking-tight" style={{ fontFamily: '"DM Serif Text", serif' }}>
+              Mat We
+            </span>
+          </Link>
 
           <div className="flex items-center gap-2">
             <ThemeToggle />
@@ -106,7 +108,8 @@ export function HeaderClient({ initialUser, initialProfile }: HeaderClientProps)
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={handleLogout}
-                    className="flex items-center gap-2 cursor-pointer text-red-600 focus:text-red-600">
+                    className="flex items-center gap-2 cursor-pointer text-red-600 focus:text-red-600"
+                  >
                     <LogOut className="h-4 w-4" />
                     로그아웃
                   </DropdownMenuItem>
@@ -129,7 +132,8 @@ export function HeaderClient({ initialUser, initialProfile }: HeaderClientProps)
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               aria-expanded={isMenuOpen}
               aria-controls="mobile-menu"
-              aria-label={isMenuOpen ? "메뉴 닫기" : "메뉴 열기"}>
+              aria-label={isMenuOpen ? "메뉴 닫기" : "메뉴 열기"}
+            >
               <Menu className="h-5 w-5" aria-hidden="true" />
             </Button>
           </div>
@@ -140,19 +144,22 @@ export function HeaderClient({ initialUser, initialProfile }: HeaderClientProps)
             <Link
               href="/courses"
               className="block py-2 text-sm font-medium hover:text-primary transition-colors"
-              onClick={() => setIsMenuOpen(false)}>
+              onClick={() => setIsMenuOpen(false)}
+            >
               강의
             </Link>
             <Link
               href="/instructors"
               className="block py-2 text-sm font-medium hover:text-primary transition-colors"
-              onClick={() => setIsMenuOpen(false)}>
+              onClick={() => setIsMenuOpen(false)}
+            >
               강사
             </Link>
             <Link
               href="/community"
               className="block py-2 text-sm font-medium hover:text-primary transition-colors"
-              onClick={() => setIsMenuOpen(false)}>
+              onClick={() => setIsMenuOpen(false)}
+            >
               커뮤니티
             </Link>
             <div className="pt-4 space-y-2 border-t">
@@ -176,7 +183,8 @@ export function HeaderClient({ initialUser, initialProfile }: HeaderClientProps)
                     onClick={() => {
                       handleLogout();
                       setIsMenuOpen(false);
-                    }}>
+                    }}
+                  >
                     <LogOut className="h-4 w-4" />
                     로그아웃
                   </Button>

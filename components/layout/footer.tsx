@@ -2,8 +2,8 @@ import Link from "next/link"
 
 export function Footer() {
   return (
-    <footer className="border-t bg-muted/30 py-12" role="contentinfo" aria-label="사이트 푸터">
-      <div className="container mx-auto px-4 max-w-7xl">
+    <footer className="w-full border-t py-12" role="contentinfo" aria-label="사이트 푸터">
+      <div className="w-full max-w-[1024px] mx-auto px-6">
         <div className="grid md:grid-cols-4 gap-8 mb-8">
           <div className="space-y-4">
             <h2 className="text-lg font-bold">Mat We</h2>
