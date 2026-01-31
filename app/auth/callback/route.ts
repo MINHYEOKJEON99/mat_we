@@ -68,6 +68,29 @@ export async function GET(request: Request) {
           .eq("id", user.id)
       }
 
+      // 강사 신청이 있으면 instructor_applications에 추가
+      if (user.user_metadata?.requested_instructor) {
+        // 이미 신청이 있는지 확인
+        const { data: existingApp } = await supabase
+          .from("instructor_applications")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("status", "pending")
+          .single()
+
+        if (!existingApp) {
+          await supabase
+            .from("instructor_applications")
+            .insert({
+              user_id: user.id,
+              from_role: "student",
+              to_role: "instructor",
+              status: "pending",
+            })
+          console.log("[Callback] Instructor application created for user:", user.email)
+        }
+      }
+
       // 프로필 미완성이면 프로필 완성 페이지로
       if (!profile || !profile.is_profile_complete) {
         console.log("[Callback] Profile incomplete, redirecting to complete-profile")

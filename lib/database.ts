@@ -166,3 +166,18 @@ export interface PostLike {
   user_id: string;
   created_at: string;
 }
+
+// 강사 신청 상태
+export type InstructorApplicationStatus = "pending" | "approved" | "rejected";
+
+export interface InstructorApplication {
+  id: string;
+  user_id: string;
+  from_role: UserRole;
+  to_role: UserRole;
+  status: InstructorApplicationStatus;
+  admin_note: string | null;
+  created_at: string;
+  updated_at: string;
+  user?: Profile;
+}

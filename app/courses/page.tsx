@@ -1,5 +1,6 @@
 import { getAllCourses, getCurrentUser, getEnrolledCourseIds, getAllCategories } from "@/lib/api/server";
 import { CoursesList } from "@/components/course/courses-list";
+import { FadeInSection } from "@/components/ui/fade-in-section";
 import type { CourseWithDetails } from "@/lib/api/server/courses";
 import type { Category } from "@/lib/database";
 
@@ -128,19 +129,23 @@ export default async function CoursesPage() {
   const displayCategories = useDummyData ? DUMMY_CATEGORIES : categories;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="font-heading text-2xl mb-2">COURSES</h1>
-          <p className="text-muted-foreground">전문 강사의 고품질 주짓수 강의를 만나보세요</p>
-        </div>
+        <FadeInSection>
+          <div className="mb-8">
+            <h1 className="font-heading text-2xl mb-2">COURSES</h1>
+            <p className="text-muted-foreground">전문 강사의 고품질 주짓수 강의를 만나보세요</p>
+          </div>
+        </FadeInSection>
 
-        <CoursesList
-          courses={displayCourses}
-          categories={displayCategories}
-          enrolledCourseIds={enrolledCourseIds}
-          isLoggedIn={!!user}
-        />
+        <FadeInSection delay={150}>
+          <CoursesList
+            courses={displayCourses}
+            categories={displayCategories}
+            enrolledCourseIds={enrolledCourseIds}
+            isLoggedIn={!!user}
+          />
+        </FadeInSection>
       </main>
     </div>
   );

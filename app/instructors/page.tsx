@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { FadeInSection } from "@/components/ui/fade-in-section";
 
 // 더미 강사 데이터
 const instructors = [
@@ -56,57 +57,61 @@ const instructors = [
 
 export default function InstructorsPage() {
   return (
-    <main className="flex flex-col items-center min-h-screen">
+    <main className="flex flex-col items-center min-h-screen overflow-x-hidden">
       <div className="w-full max-w-[1024px] px-6 py-16">
         {/* Header */}
-        <div className="mb-12">
-          <h1 className="text-3xl md:text-4xl font-heading tracking-wide mb-3">INSTRUCTORS</h1>
-          <p className="text-muted-foreground">
-            검증된 전문 강사진을 만나보세요
-          </p>
-        </div>
+        <FadeInSection>
+          <div className="mb-12">
+            <h1 className="text-3xl md:text-4xl font-heading tracking-wide mb-3">INSTRUCTORS</h1>
+            <p className="text-muted-foreground">
+              검증된 전문 강사진을 만나보세요
+            </p>
+          </div>
+        </FadeInSection>
 
         {/* Instructors Grid */}
         <div className="grid md:grid-cols-3 gap-6">
-          {instructors.map((instructor) => (
-            <article key={instructor.id} className="group">
-              {/* Image */}
-              <div className="relative aspect-[3/4] rounded-[5px] w-full overflow-hidden bg-muted mb-4">
-                <Image
-                  src={instructor.image}
-                  alt={instructor.name}
-                  fill
-                  className="object-cover transition-transform duration-500 group-hover:scale-105"
-                  sizes="(max-width: 768px) 100vw, 33vw"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                <div className="absolute bottom-4 left-4 right-4">
-                  <span className="inline-block px-2 py-1 text-xs font-medium bg-white/90 text-black mb-2">
-                    {instructor.specialty}
-                  </span>
-                  <h3 className="text-lg font-bold text-white">{instructor.title}</h3>
+          {instructors.map((instructor, index) => (
+            <FadeInSection key={instructor.id} delay={100 + index * 100}>
+              <article className="group">
+                {/* Image */}
+                <div className="relative aspect-[3/4] rounded-[5px] w-full overflow-hidden bg-muted mb-4">
+                  <Image
+                    src={instructor.image}
+                    alt={instructor.name}
+                    fill
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                  <div className="absolute bottom-4 left-4 right-4">
+                    <span className="inline-block px-2 py-1 text-xs font-medium bg-white/90 text-black mb-2">
+                      {instructor.specialty}
+                    </span>
+                    <h3 className="text-lg font-bold text-white">{instructor.title}</h3>
+                  </div>
                 </div>
-              </div>
 
-              {/* Content */}
-              <div className="space-y-2">
-                <h4 className="text-lg font-bold">{instructor.name}</h4>
-                <p className="text-sm text-muted-foreground line-clamp-2">
-                  {instructor.description}
-                </p>
+                {/* Content */}
+                <div className="space-y-2">
+                  <h4 className="text-lg font-bold">{instructor.name}</h4>
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {instructor.description}
+                  </p>
 
-                {/* Links */}
-                <div className="flex gap-4 pt-2">
-                  <Link
-                    href={`/instructors/${instructor.id}`}
-                    className="inline-flex items-center gap-1.5 text-sm font-medium hover:gap-2.5 transition-all"
-                  >
-                    프로필 보기
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </Link>
+                  {/* Links */}
+                  <div className="flex gap-4 pt-2">
+                    <Link
+                      href={`/instructors/${instructor.id}/pt`}
+                      className="inline-flex items-center gap-1.5 text-sm font-medium hover:gap-2.5 transition-all"
+                    >
+                      PT신청
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </div>
                 </div>
-              </div>
-            </article>
+              </article>
+            </FadeInSection>
           ))}
         </div>
       </div>
