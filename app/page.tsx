@@ -1,7 +1,8 @@
-import { FeaturedCourses } from "@/components/course/featured-courses"
-import { Footer } from "@/components/layout/footer"
-import Link from "next/link"
-import { ArrowRight } from "lucide-react"
+import { FeaturedCourses } from "@/components/course/featured-courses";
+import { FeaturedInstructors } from "@/components/landing/featured-instructors";
+import { Footer } from "@/components/layout/footer";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 
 export default async function HomePage() {
   return (
@@ -30,20 +31,22 @@ export default async function HomePage() {
           </div>
         </section>
 
+        {/* Instructors Section */}
+        <section className="w-full max-w-[1024px] px-6 py-8">
+          <FeaturedInstructors />
+        </section>
+
         {/* Courses Section */}
-        <section className="w-full max-w-[1024px] px-6 py-16 border-t">
+        <section className="w-full max-w-[1024px] px-6 py-8">
           <FeaturedCourses />
         </section>
 
         {/* Community Section */}
-        <section className="w-full max-w-[1024px] px-6 py-24 border-t">
+        <section className="w-full max-w-[1024px] px-6 py-16">
           <div className="space-y-6">
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
-              커뮤니티
-            </h2>
-            <p className="text-muted-foreground max-w-[500px]">
-              전국의 주짓수 수련자들과 경험을 나누고,
-              함께 성장하세요.
+            <h2 className="text-2xl md:text-3xl font-heading tracking-wide">COMMUNITY</h2>
+            <p className="text-[13px] text-muted-foreground max-w-[500px]">
+              전국의 주짓수 수련자들과 경험을 나누고, 함께 성장하세요.
             </p>
             <Link
               href="/community"
@@ -58,5 +61,5 @@ export default async function HomePage() {
 
       <Footer />
     </>
-  )
+  );
 }

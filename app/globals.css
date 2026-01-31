@@ -1,12 +1,28 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import url("https://fonts.googleapis.com/css2?family=DM+Serif+Text:ital@0;1&family=Noto+Sans+KR:wght@100..900&display=swap");
+@import url("https://use.typekit.net/xxxxxxx.css");
+
+/* Din Condensed - Adobe Fonts fallback with similar Google Font */
+@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap");
+
+.font-heading {
+  font-family: "Bebas Neue", din-condensed, sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: #3a3a3a;
+}
+
+.dark .font-heading {
+  color: #b0b0b0;
+}
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
   /* Minimal Black/Gray/White theme */
-  --background: oklch(1 0 0);
+  --background: oklch(0.97 0 0);
   --foreground: oklch(0.1 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.1 0 0);

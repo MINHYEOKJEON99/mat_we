@@ -9,7 +9,8 @@ const DUMMY_COURSES: CourseWithDetails[] = [
     id: "dummy-1",
     instructor_id: "dummy-instructor-1",
     title: "주짓수 기초 마스터 클래스: 화이트벨트를 위한 완벽 가이드",
-    description: "주짓수를 처음 시작하는 분들을 위한 체계적인 기초 강의입니다. 기본 자세부터 필수 테크닉까지 단계별로 배워보세요.",
+    description:
+      "주짓수를 처음 시작하는 분들을 위한 체계적인 기초 강의입니다. 기본 자세부터 필수 테크닉까지 단계별로 배워보세요.",
     thumbnail_url: "https://images.unsplash.com/photo-1555597673-b21d5c935865?w=800&h=450&fit=crop",
     price: 89000,
     level: "beginner",
@@ -113,11 +114,7 @@ const DUMMY_CATEGORIES: Category[] = [
 
 export default async function CoursesPage() {
   // Fetch all data in parallel
-  const [courses, user, categories] = await Promise.all([
-    getAllCourses(),
-    getCurrentUser(),
-    getAllCategories(),
-  ]);
+  const [courses, user, categories] = await Promise.all([getAllCourses(), getCurrentUser(), getAllCategories()]);
 
   // If user is logged in, get their enrollments
   let enrolledCourseIds: string[] = [];
@@ -134,7 +131,7 @@ export default async function CoursesPage() {
     <div className="min-h-screen bg-background">
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">주짓수 강의</h1>
+          <h1 className="font-heading text-2xl mb-2">COURSES</h1>
           <p className="text-muted-foreground">전문 강사의 고품질 주짓수 강의를 만나보세요</p>
         </div>
 

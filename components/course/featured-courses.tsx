@@ -1,9 +1,9 @@
-import Image from "next/image"
-import Link from "next/link"
-import { Badge } from "@/components/ui/badge"
-import { Star, ArrowRight } from "lucide-react"
-import { getAllCourses } from "@/lib/api/server"
-import type { CourseWithDetails } from "@/lib/api/server/courses"
+import Image from "next/image";
+import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
+import { Star, ArrowRight } from "lucide-react";
+import { getAllCourses } from "@/lib/api/server";
+import type { CourseWithDetails } from "@/lib/api/server/courses";
 
 // 더미 데이터 (실제 데이터가 없을 경우 사용)
 const DUMMY_COURSES: CourseWithDetails[] = [
@@ -88,22 +88,22 @@ const DUMMY_COURSES: CourseWithDetails[] = [
     },
     categories: [],
   },
-]
+];
 
 export async function FeaturedCourses() {
-  const courses = await getAllCourses()
-  const displayCourses = courses.length > 0 ? courses.slice(0, 3) : DUMMY_COURSES
+  const courses = await getAllCourses();
+  const displayCourses = courses.length > 0 ? courses.slice(0, 3) : DUMMY_COURSES;
 
   return (
     <div className="w-full">
       <div className="flex items-end justify-between mb-10">
         <div>
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-2">인기 강의</h2>
-          <p className="text-muted-foreground">가장 많은 수강생이 선택한 강의</p>
+          <h2 className="text-2xl md:text-3xl font-heading tracking-wide mb-2">RECENTLY ADDED</h2>
+          <p className="text-[13px] text-muted-foreground">최신 강의를 만나보세요</p>
         </div>
         <Link
           href="/courses"
-          className="hidden md:inline-flex items-center gap-2 text-sm font-medium hover:gap-3 transition-all"
+          className="hidden md:inline-flex items-center my-auto gap-2 text-sm font-medium hover:gap-3 transition-all"
         >
           전체 보기
           <ArrowRight className="h-4 w-4" />
@@ -112,12 +112,12 @@ export async function FeaturedCourses() {
 
       <div className="grid md:grid-cols-3 gap-6">
         {displayCourses.map((course) => {
-          const rating = course.average_rating || 0
-          const reviewCount = course.review_count || 0
+          const rating = course.average_rating || 0;
+          const reviewCount = course.review_count || 0;
 
           return (
             <Link key={course.id} href={`/courses/${course.id}`} className="group">
-              <article className="bg-card overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5">
+              <article className="bg-transparent rounded-[5px] overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5">
                 {/* Thumbnail */}
                 <div className="relative aspect-video w-full overflow-hidden bg-muted">
                   {course.thumbnail_url ? (
@@ -200,7 +200,7 @@ export async function FeaturedCourses() {
                 </div>
               </article>
             </Link>
-          )
+          );
         })}
       </div>
 
@@ -212,5 +212,5 @@ export async function FeaturedCourses() {
         <ArrowRight className="h-4 w-4" />
       </Link>
     </div>
-  )
+  );
 }
