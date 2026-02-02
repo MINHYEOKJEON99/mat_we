@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, use } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/client"
 import { Button } from "@/components/ui/button"
@@ -17,9 +17,9 @@ interface PageProps {
 
 export default function StudentCourseViewPage({ params }: PageProps) {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
+  const { courseId } = use(params)
 
-  const [courseId, setCourseId] = useState<string>("")
   const [userId, setUserId] = useState<string>("")
   const [course, setCourse] = useState<any>(null)
   const [videos, setVideos] = useState<CourseVideo[]>([])
@@ -27,11 +27,6 @@ export default function StudentCourseViewPage({ params }: PageProps) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    params.then(p => setCourseId(p.courseId))
-  }, [params])
-
-  useEffect(() => {
-    if (!courseId) return
 
     async function loadData() {
       // Check auth
@@ -81,7 +76,8 @@ export default function StudentCourseViewPage({ params }: PageProps) {
     }
 
     loadData()
-  }, [courseId, router, supabase])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [courseId])
 
   if (loading) {
     return (

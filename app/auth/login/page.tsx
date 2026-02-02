@@ -144,7 +144,6 @@ export default function LoginPage() {
       if (error) {
         console.error("Resend verification error:", error);
         const message = error.message.toLowerCase();
-        const code = (error as { code?: string }).code?.toLowerCase() || "";
 
         if (message.includes("rate limit") || message.includes("too many")) {
           setResendError("요청이 너무 많습니다. 잠시 후 다시 시도해주세요");
@@ -152,13 +151,8 @@ export default function LoginPage() {
           setResendError("등록되지 않은 이메일입니다. 회원가입을 먼저 진행해주세요");
         } else if (message.includes("already confirmed") || message.includes("already registered")) {
           setResendError("이미 인증이 완료된 이메일입니다. 로그인을 시도해주세요");
-        } else if (code === "email_address_invalid" || message.includes("invalid")) {
-          // 이메일이 유효하지 않다는 것은 해당 이메일로 가입된 계정이 없거나
-          // 이미 인증이 완료된 경우일 수 있음
-          setResendError("해당 이메일로 대기 중인 인증 요청이 없습니다. 이미 인증이 완료되었거나 가입되지 않은 이메일입니다.");
         } else {
-          // Supabase에서 보안상 이유로 구체적인 에러를 안 줄 수도 있음
-          // 이 경우 성공으로 처리하여 이메일 존재 여부를 노출하지 않음
+          // 보안상 구체적인 에러를 노출하지 않음
           setResendSuccess(true);
         }
         return;

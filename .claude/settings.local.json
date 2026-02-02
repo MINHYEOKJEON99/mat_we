@@ -9,7 +9,10 @@
       "Bash(npm uninstall:*)",
       "Bash(grep:*)",
       "Bash(cat:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(npm run email:dev:*)",
+      "Bash(npx email:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

@@ -35,6 +35,7 @@ export interface Profile {
   avatar_url: string | null;
   interested_sports: SportType[];
   is_profile_complete: boolean;
+  requested_instructor: boolean; // 강사 신청 대기 중 여부
   created_at: string;
   updated_at: string;
 }
@@ -173,11 +174,11 @@ export type InstructorApplicationStatus = "pending" | "approved" | "rejected";
 export interface InstructorApplication {
   id: string;
   user_id: string;
-  from_role: UserRole;
-  to_role: UserRole;
   status: InstructorApplicationStatus;
   admin_note: string | null;
   created_at: string;
   updated_at: string;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
   user?: Profile;
 }

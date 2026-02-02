@@ -96,9 +96,9 @@ export default function SignupPage() {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: {
             display_name: data.displayName,
-            role: actualRole, // 항상 수강생으로 가입
+            role: actualRole,
             interested_sports: data.interestedSports,
-            requested_instructor: isRequestingInstructor, // 강사 신청 여부 저장
+            requested_instructor: isRequestingInstructor,
           },
         },
       });
