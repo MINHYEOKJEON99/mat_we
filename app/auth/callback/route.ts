@@ -68,7 +68,7 @@ export async function GET(request: Request) {
           .eq("id", user.id)
       }
 
-      // 강사 신청이 있으면 instructor_applications에 추가
+      // 강사 신청이 있으면 instructor_applications에 추가 및 profiles 업데이트
       if (user.user_metadata?.requested_instructor) {
         // 이미 신청이 있는지 확인
         const { data: existingApp } = await supabase
@@ -79,14 +79,20 @@ export async function GET(request: Request) {
           .single()
 
         if (!existingApp) {
+          // instructor_applications 레코드 생성
           await supabase
             .from("instructor_applications")
             .insert({
               user_id: user.id,
-              from_role: "student",
-              to_role: "instructor",
               status: "pending",
             })
+
+          // profiles에 requested_instructor 플래그 설정
+          await supabase
+            .from("profiles")
+            .update({ requested_instructor: true })
+            .eq("id", user.id)
+
           console.log("[Callback] Instructor application created for user:", user.email)
         }
       }

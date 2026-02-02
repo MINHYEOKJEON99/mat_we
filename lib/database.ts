@@ -35,7 +35,7 @@ export interface Profile {
   avatar_url: string | null;
   interested_sports: SportType[];
   is_profile_complete: boolean;
-  requested_instructor: boolean; // 강사 신청 대기 중 여부
+  requested_instructor?: boolean; // 강사 신청 대기 중 여부
   created_at: string;
   updated_at: string;
 }

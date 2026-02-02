@@ -47,33 +47,17 @@ export async function POST(request: Request) {
       );
     }
 
-    // Update application status
+    // Update application status (트리거가 자동으로 profiles.role과 requested_instructor 업데이트)
     const newStatus = action === "approve" ? "approved" : "rejected";
     const { error: updateAppError } = await supabase
       .from("instructor_applications")
       .update({
         status: newStatus,
-        updated_at: new Date().toISOString(),
       })
       .eq("id", applicationId);
 
     if (updateAppError) {
       throw updateAppError;
-    }
-
-    // If approved, update user role
-    if (action === "approve") {
-      const { error: updateRoleError } = await supabase
-        .from("profiles")
-        .update({
-          role: application.to_role,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", application.user_id);
-
-      if (updateRoleError) {
-        throw updateRoleError;
-      }
     }
 
     return NextResponse.json({ success: true, status: newStatus });

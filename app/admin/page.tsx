@@ -12,9 +12,10 @@ export default async function AdminPage() {
     redirect("/admin/login");
   }
 
-  // Fetch instructor applications
   const supabase = await createClient();
-  const { data: applications, error } = await supabase
+
+  // Fetch instructor applications
+  const { data: applications, error: applicationsError } = await supabase
     .from("instructor_applications")
     .select(`
       *,
@@ -28,9 +29,25 @@ export default async function AdminPage() {
     `)
     .order("created_at", { ascending: false });
 
-  if (error) {
-    console.error("Failed to fetch applications:", error);
+  if (applicationsError) {
+    console.error("Failed to fetch applications:", applicationsError);
   }
 
-  return <AdminDashboard applications={applications || []} />;
+  // Fetch instructors list
+  const { data: instructors, error: instructorsError } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("role", "instructor")
+    .order("created_at", { ascending: false });
+
+  if (instructorsError) {
+    console.error("Failed to fetch instructors:", instructorsError);
+  }
+
+  return (
+    <AdminDashboard
+      applications={applications || []}
+      instructors={instructors || []}
+    />
+  );
 }

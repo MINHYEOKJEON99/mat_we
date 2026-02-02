@@ -7,11 +7,12 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useRouter } from "next/navigation"
-import { useState, useRef } from "react"
+import { useState, useRef, useMemo } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { Camera, ArrowLeft, Loader2 } from "lucide-react"
+import { Camera, ArrowLeft, Loader2, UserCheck, Clock } from "lucide-react"
+import { createClient } from "@/lib/client"
 import { useMutation } from "@tanstack/react-query"
 import Link from "next/link"
 import { updateProfile } from "@/app/mypage/edit/actions"
@@ -35,8 +36,12 @@ export function EditProfileForm({ initialProfile }: EditProfileFormProps) {
   const [avatarError, setAvatarError] = useState<string | null>(null)
   const [cropperOpen, setCropperOpen] = useState(false)
   const [originalImageSrc, setOriginalImageSrc] = useState<string | null>(null)
+  const [requestingInstructor, setRequestingInstructor] = useState(false)
+  const [instructorRequestStatus, setInstructorRequestStatus] = useState<string | null>(null)
+  const [requestedInstructor, setRequestedInstructor] = useState(initialProfile.requested_instructor)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
+  const supabase = useMemo(() => createClient(), [])
 
   const mutation = useMutation({
     mutationFn: async (formData: FormData) => {
@@ -107,6 +112,52 @@ export function EditProfileForm({ initialProfile }: EditProfileFormProps) {
   }
 
   const userInitial = initialProfile.display_name?.charAt(0) || initialProfile.email?.charAt(0)?.toUpperCase() || "U"
+
+  const handleRequestInstructor = async () => {
+    setRequestingInstructor(true)
+    setInstructorRequestStatus(null)
+
+    try {
+      // 이미 신청이 있는지 확인 (.maybeSingle()은 결과가 없어도 에러 안남)
+      const { data: existingApp } = await supabase
+        .from("instructor_applications")
+        .select("id, status")
+        .eq("user_id", initialProfile.id)
+        .eq("status", "pending")
+        .maybeSingle()
+
+      if (existingApp) {
+        setInstructorRequestStatus("이미 강사 신청이 진행 중입니다.")
+        return
+      }
+
+      // 강사 신청 생성
+      const { error: insertError } = await supabase
+        .from("instructor_applications")
+        .insert({
+          user_id: initialProfile.id,
+          status: "pending",
+        })
+
+      if (insertError) throw insertError
+
+      // profiles에 requested_instructor 플래그 설정
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ requested_instructor: true })
+        .eq("id", initialProfile.id)
+
+      if (updateError) throw updateError
+
+      setRequestedInstructor(true)
+      setInstructorRequestStatus("강사 신청이 완료되었습니다. 관리자 승인을 기다려주세요.")
+    } catch (error) {
+      console.error("Instructor request error:", error)
+      setInstructorRequestStatus("강사 신청 중 오류가 발생했습니다.")
+    } finally {
+      setRequestingInstructor(false)
+    }
+  }
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -203,17 +254,60 @@ export function EditProfileForm({ initialProfile }: EditProfileFormProps) {
                 </p>
               </div>
 
-              {/* Role (읽기 전용) */}
+              {/* Role */}
               <div className="grid gap-2">
                 <Label>역할</Label>
-                <div className="flex items-center gap-2 p-3 rounded-md bg-muted">
+                <div className="flex items-center justify-between p-3 rounded-md bg-muted">
                   <span className="font-medium">
                     {initialProfile.role === "instructor" ? "강사" : "수강생"}
                   </span>
+                  {initialProfile.role === "student" && (
+                    <>
+                      {requestedInstructor ? (
+                        <div className="flex items-center gap-2 text-sm text-amber-600">
+                          <Clock className="h-4 w-4" />
+                          <span>강사 승인 대기 중</span>
+                        </div>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleRequestInstructor}
+                          disabled={requestingInstructor}
+                        >
+                          {requestingInstructor ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              신청 중...
+                            </>
+                          ) : (
+                            <>
+                              <UserCheck className="mr-2 h-4 w-4" />
+                              강사 신청하기
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </>
+                  )}
+                  {initialProfile.role === "instructor" && (
+                    <div className="flex items-center gap-2 text-sm text-green-600">
+                      <UserCheck className="h-4 w-4" />
+                      <span>인증된 강사</span>
+                    </div>
+                  )}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  역할 변경이 필요하시면 고객센터로 문의해주세요
-                </p>
+                {instructorRequestStatus && (
+                  <p className={`text-sm ${instructorRequestStatus.includes("오류") ? "text-red-500" : "text-green-600"}`}>
+                    {instructorRequestStatus}
+                  </p>
+                )}
+                {initialProfile.role === "student" && !requestedInstructor && (
+                  <p className="text-xs text-muted-foreground">
+                    강사로 활동하시려면 신청 후 관리자 승인이 필요합니다
+                  </p>
+                )}
               </div>
 
               {mutation.error && (

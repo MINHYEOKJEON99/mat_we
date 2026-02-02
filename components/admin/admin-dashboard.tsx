@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
-import { Check, X, LogOut } from "lucide-react";
+import { Check, X, LogOut, UserMinus } from "lucide-react";
 import type { InstructorApplication, Profile } from "@/lib/database";
 
 interface ApplicationWithUser extends Omit<InstructorApplication, 'user'> {
@@ -17,9 +17,10 @@ interface ApplicationWithUser extends Omit<InstructorApplication, 'user'> {
 
 interface AdminDashboardProps {
   applications: ApplicationWithUser[];
+  instructors: Profile[];
 }
 
-export function AdminDashboard({ applications }: AdminDashboardProps) {
+export function AdminDashboard({ applications, instructors }: AdminDashboardProps) {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const router = useRouter();
 
@@ -55,12 +56,31 @@ export function AdminDashboard({ applications }: AdminDashboardProps) {
     router.refresh();
   };
 
-  const getRoleBadge = (role: string) => {
-    return role === "instructor" ? (
-      <Badge variant="default">강사</Badge>
-    ) : (
-      <Badge variant="secondary">수강생</Badge>
-    );
+  const handleDemoteInstructor = async (userId: string) => {
+    if (!confirm("정말로 이 강사를 수강생으로 변경하시겠습니까?")) {
+      return;
+    }
+
+    setProcessingId(userId);
+
+    try {
+      const res = await fetch("/api/admin/demote-instructor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "처리 실패");
+      }
+
+      router.refresh();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "오류가 발생했습니다");
+    } finally {
+      setProcessingId(null);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -118,12 +138,7 @@ export function AdminDashboard({ applications }: AdminDashboardProps) {
                         <div>
                           <div className="flex items-center gap-2">
                             <p className="font-medium">{app.user?.display_name || "알 수 없음"}</p>
-                            <span className="text-muted-foreground">님</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            {getRoleBadge(app.from_role)}
-                            <span>→</span>
-                            {getRoleBadge(app.to_role)}
+                            <span className="text-muted-foreground">님의 강사 신청</span>
                           </div>
                           <p className="text-xs text-muted-foreground mt-1">
                             {app.user?.email} •{" "}
@@ -192,12 +207,8 @@ export function AdminDashboard({ applications }: AdminDashboardProps) {
                             <p className="font-medium">{app.user?.display_name || "알 수 없음"}</p>
                             {getStatusBadge(app.status)}
                           </div>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            {getRoleBadge(app.from_role)}
-                            <span>→</span>
-                            {getRoleBadge(app.to_role)}
-                          </div>
                           <p className="text-xs text-muted-foreground mt-1">
+                            {app.user?.email} •{" "}
                             {formatDistanceToNow(new Date(app.updated_at), {
                               addSuffix: true,
                               locale: ko,
@@ -205,6 +216,65 @@ export function AdminDashboard({ applications }: AdminDashboardProps) {
                           </p>
                         </div>
                       </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Instructors List */}
+          <Card>
+            <CardHeader>
+              <CardTitle>강사 목록</CardTitle>
+              <CardDescription>
+                현재 {instructors.length}명의 강사가 활동 중입니다
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {instructors.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">
+                  등록된 강사가 없습니다
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {instructors.map((instructor) => (
+                    <div
+                      key={instructor.id}
+                      className="flex items-center justify-between p-4 border rounded-lg"
+                    >
+                      <div className="flex items-center gap-4">
+                        <Avatar>
+                          <AvatarImage src={instructor.avatar_url || undefined} />
+                          <AvatarFallback>
+                            {instructor.display_name?.[0] || "?"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{instructor.display_name || "알 수 없음"}</p>
+                            <Badge className="bg-green-500">강사</Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {instructor.email} •{" "}
+                            {formatDistanceToNow(new Date(instructor.created_at), {
+                              addSuffix: true,
+                              locale: ko,
+                            })}
+                            에 가입
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDemoteInstructor(instructor.id)}
+                        disabled={processingId === instructor.id}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <UserMinus className="h-4 w-4 mr-1" />
+                        강사 해제
+                      </Button>
                     </div>
                   ))}
                 </div>
