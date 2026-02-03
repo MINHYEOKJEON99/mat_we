@@ -14,6 +14,10 @@ export async function updateProfile(formData: FormData) {
   const bio = formData.get("bio") as string
   const avatarFile = formData.get("avatar") as File | null
 
+  // PT 관련 필드 (강사 전용)
+  const ptPricePerHour = formData.get("ptPricePerHour") as string | null
+  const ptDescription = formData.get("ptDescription") as string | null
+
   let avatarUrl: string | null = formData.get("currentAvatarUrl") as string | null
 
   // 아바타 업로드
@@ -37,15 +41,26 @@ export async function updateProfile(formData: FormData) {
     avatarUrl = urlData.publicUrl
   }
 
+  // 프로필 업데이트 데이터 준비
+  const updateData: Record<string, unknown> = {
+    display_name: displayName,
+    bio: bio || null,
+    avatar_url: avatarUrl,
+    updated_at: new Date().toISOString(),
+  }
+
+  // PT 필드는 강사만 업데이트 가능 (클라이언트에서 값이 오면 포함)
+  if (ptPricePerHour !== null) {
+    updateData.pt_price_per_hour = ptPricePerHour ? parseInt(ptPricePerHour, 10) : null
+  }
+  if (ptDescription !== null) {
+    updateData.pt_description = ptDescription || null
+  }
+
   // 프로필 업데이트
   const { error: updateError } = await supabase
     .from("profiles")
-    .update({
-      display_name: displayName,
-      bio: bio || null,
-      avatar_url: avatarUrl,
-      updated_at: new Date().toISOString(),
-    })
+    .update(updateData)
     .eq("id", user.id)
 
   if (updateError) {

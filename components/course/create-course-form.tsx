@@ -18,6 +18,7 @@ import { Progress } from "@/components/ui/progress";
 import { ImagePlus, Loader2, X, Video, Plus } from "lucide-react";
 import Image from "next/image";
 import type { Category } from "@/lib/database";
+import { formatPrice, parsePrice } from "@/lib/utils";
 
 const courseSchema = z.object({
   title: z.string().min(1, "강의 제목을 입력해주세요"),
@@ -55,6 +56,9 @@ export function CreateCourseForm({ instructorId, categories }: CreateCourseFormP
   // Video state
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const videoInputRef = useRef<HTMLInputElement>(null);
+
+  // Price state (for comma formatting)
+  const [priceDisplay, setPriceDisplay] = useState("");
 
   // Upload progress state
   const [uploadStatus, setUploadStatus] = useState<string>("");
@@ -188,7 +192,7 @@ export function CreateCourseForm({ instructorId, categories }: CreateCourseFormP
           instructor_id: instructorId,
           title: data.title,
           description: data.description || null,
-          price: data.price ? Number.parseFloat(data.price) : 0,
+          price: data.price ? Number.parseFloat(parsePrice(data.price)) : 0,
           level: data.level,
           thumbnail_url: thumbnailUrl,
         },
@@ -481,7 +485,18 @@ export function CreateCourseForm({ instructorId, categories }: CreateCourseFormP
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="price">가격 (원)</Label>
-                <Input id="price" type="number" placeholder="50000" {...register("price")} />
+                <Input
+                  id="price"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="50,000"
+                  value={priceDisplay}
+                  onChange={(e) => {
+                    const formatted = formatPrice(e.target.value);
+                    setPriceDisplay(formatted);
+                    setValue("price", parsePrice(formatted));
+                  }}
+                />
               </div>
 
               <div className="space-y-2">

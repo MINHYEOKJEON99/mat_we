@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/server"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ThumbsUp, MessageSquare, Plus } from "lucide-react"
 import type { CommunityPost } from "@/lib/database"
+import { RichViewer } from "@/components/editor/rich-viewer"
 
 export default async function MyPostsPage() {
   const supabase = await createClient()
@@ -48,9 +49,9 @@ export default async function MyPostsPage() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="space-y-1 flex-1 min-w-0">
                       <h3 className="font-medium truncate">{post.title}</h3>
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {post.content}
-                      </p>
+                      <div className="text-sm text-muted-foreground line-clamp-2 [&_.ProseMirror]:p-0 [&_.ProseMirror]:min-h-0">
+                        <RichViewer content={post.content} className="!prose-sm" />
+                      </div>
                     </div>
                     <span className="text-xs text-muted-foreground shrink-0">
                       {new Date(post.created_at).toLocaleDateString("ko-KR")}

@@ -40,8 +40,7 @@ export function CommentSection({ postId, userId }: CommentSectionProps) {
 
   // 댓글을 부모/자식으로 구조화
   const rootComments = (comments as CommentWithAuthor[]).filter((c) => !c.parent_id);
-  const getReplies = (parentId: string) =>
-    (comments as CommentWithAuthor[]).filter((c) => c.parent_id === parentId);
+  const getReplies = (parentId: string) => (comments as CommentWithAuthor[]).filter((c) => c.parent_id === parentId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,9 +107,7 @@ export function CommentSection({ postId, userId }: CommentSectionProps) {
                 className="w-8 h-8 rounded-full object-cover"
               />
             ) : (
-              <span className="text-sm font-semibold text-primary">
-                {comment.author?.display_name?.[0] || "?"}
-              </span>
+              <span className="text-sm font-semibold text-primary">{comment.author?.display_name?.[0] || "?"}</span>
             )}
           </div>
           <div className="flex-1 min-w-0">
@@ -173,24 +170,11 @@ export function CommentSection({ postId, userId }: CommentSectionProps) {
               className="text-sm"
             />
             <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setReplyTo(null)}
-              >
+              <Button type="button" variant="ghost" size="sm" onClick={() => setReplyTo(null)}>
                 취소
               </Button>
-              <Button
-                type="submit"
-                size="sm"
-                disabled={createComment.isPending || !replyContent.trim()}
-              >
-                {createComment.isPending ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  "답글 작성"
-                )}
+              <Button type="submit" size="sm" disabled={createComment.isPending || !replyContent.trim()}>
+                {createComment.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "답글 작성"}
               </Button>
             </div>
           </form>

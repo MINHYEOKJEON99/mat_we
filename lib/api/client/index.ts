@@ -1,3 +1,6 @@
+// Supabase REST (직접 API 호출용)
+export * from "./supabase-rest"
+
 // Auth
 export * from "./auth"
 

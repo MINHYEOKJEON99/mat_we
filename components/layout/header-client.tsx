@@ -116,14 +116,9 @@ export function HeaderClient({ initialUser, initialProfile }: HeaderClientProps)
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : showAuthButtons ? (
-              <>
-                <Button asChild variant="ghost" className="hidden md:flex">
-                  <Link href="/auth/login">로그인</Link>
-                </Button>
-                <Button asChild className="hidden md:flex">
-                  <Link href="/auth/signup">시작하기</Link>
-                </Button>
-              </>
+              <Button asChild variant="ghost" className="hidden md:flex">
+                <Link href="/auth/login">로그인</Link>
+              </Button>
             ) : null}
             <Button
               variant="ghost"
@@ -190,18 +185,11 @@ export function HeaderClient({ initialUser, initialProfile }: HeaderClientProps)
                   </Button>
                 </>
               ) : showAuthButtons ? (
-                <>
-                  <Button asChild variant="ghost" className="w-full">
-                    <Link href="/auth/login" onClick={() => setIsMenuOpen(false)}>
-                      로그인
-                    </Link>
-                  </Button>
-                  <Button asChild className="w-full">
-                    <Link href="/auth/signup" onClick={() => setIsMenuOpen(false)}>
-                      시작하기
-                    </Link>
-                  </Button>
-                </>
+                <Button asChild variant="ghost" className="w-full">
+                  <Link href="/auth/login" onClick={() => setIsMenuOpen(false)}>
+                    로그인
+                  </Link>
+                </Button>
               ) : null}
             </div>
           </nav>

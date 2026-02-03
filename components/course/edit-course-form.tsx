@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import type { Course, CourseVideo, Category } from "@/lib/database"
+import { formatPrice, parsePrice } from "@/lib/utils"
 import {
   deleteCourseAction,
   updateCourseAction,
@@ -49,7 +50,7 @@ export function EditCourseForm({ course, initialVideos, categories }: EditCourse
   // Course info state
   const [title, setTitle] = useState(course.title)
   const [description, setDescription] = useState(course.description || "")
-  const [price, setPrice] = useState(course.price.toString())
+  const [price, setPrice] = useState(formatPrice(course.price))
   const [level, setLevel] = useState<"beginner" | "intermediate" | "advanced">(course.level || "beginner")
 
   // Thumbnail state
@@ -308,7 +309,7 @@ export function EditCourseForm({ course, initialVideos, categories }: EditCourse
         {
           title,
           description: description || null,
-          price: Number.parseFloat(price),
+          price: Number.parseFloat(parsePrice(price)) || 0,
           level,
           thumbnail_url: thumbnailUrl,
         },
@@ -560,10 +561,11 @@ export function EditCourseForm({ course, initialVideos, categories }: EditCourse
                 <Label htmlFor="price">가격 (원)</Label>
                 <Input
                   id="price"
-                  type="number"
-                  placeholder="50000"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="50,000"
                   value={price}
-                  onChange={(e) => setPrice(e.target.value)}
+                  onChange={(e) => setPrice(formatPrice(e.target.value))}
                 />
               </div>
 

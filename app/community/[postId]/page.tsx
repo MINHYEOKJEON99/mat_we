@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { PostActions } from "@/components/post/post-actions"
 import { CommentSection } from "@/components/post/comment-section"
+import { RichViewer } from "@/components/editor/rich-viewer"
 import { Eye, MessageCircle, ThumbsUp, List } from "lucide-react"
 import { requireAuth, getPostById } from "@/lib/api/server"
 
@@ -82,9 +83,9 @@ export default async function PostDetailPage({ params }: { params: Promise<{ pos
 
           {/* Content Section */}
           <div className="p-4 min-h-[300px]">
-            <div
-              className="prose prose-sm max-w-none [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded [&_video]:max-w-full [&_video]:h-auto [&_video]:rounded"
-              dangerouslySetInnerHTML={{ __html: post.content }}
+            <RichViewer
+              content={post.content}
+              className="[&_img]:max-w-full [&_img]:h-auto [&_img]:rounded [&_video]:max-w-full [&_video]:h-auto [&_video]:rounded"
             />
           </div>
 

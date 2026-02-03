@@ -36,6 +36,9 @@ export interface Profile {
   interested_sports: SportType[];
   is_profile_complete: boolean;
   requested_instructor?: boolean; // 강사 신청 대기 중 여부
+  // PT 관련 필드 (강사 전용)
+  pt_price_per_hour?: number | null;
+  pt_description?: string | null;
   created_at: string;
   updated_at: string;
 }

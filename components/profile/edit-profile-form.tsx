@@ -11,17 +11,20 @@ import { useState, useRef, useMemo } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { Camera, ArrowLeft, Loader2, UserCheck, Clock } from "lucide-react"
+import { Camera, ArrowLeft, Loader2, UserCheck, Clock, DollarSign, FileText } from "lucide-react"
 import { createClient } from "@/lib/client"
 import { useMutation } from "@tanstack/react-query"
 import Link from "next/link"
 import { updateProfile } from "@/app/mypage/edit/actions"
 import { AvatarCropper } from "@/components/profile/avatar-cropper"
 import type { Profile } from "@/lib/database"
+import { formatPrice, parsePrice } from "@/lib/utils"
 
 const editProfileSchema = z.object({
   displayName: z.string().min(2, "닉네임은 최소 2자 이상이어야 합니다").max(20, "닉네임은 20자를 초과할 수 없습니다"),
   bio: z.string().max(500, "소개글은 500자를 초과할 수 없습니다").optional(),
+  // PT 관련 필드 (강사 전용)
+  ptDescription: z.string().max(1000, "PT 소개는 1000자를 초과할 수 없습니다").optional(),
 })
 
 type EditProfileFormData = z.infer<typeof editProfileSchema>
@@ -39,9 +42,17 @@ export function EditProfileForm({ initialProfile }: EditProfileFormProps) {
   const [requestingInstructor, setRequestingInstructor] = useState(false)
   const [instructorRequestStatus, setInstructorRequestStatus] = useState<string | null>(null)
   const [requestedInstructor, setRequestedInstructor] = useState(initialProfile.requested_instructor)
+  const [ptPrice, setPtPrice] = useState(() => {
+    const price = initialProfile.pt_price_per_hour
+    return price ? price.toLocaleString("ko-KR") : ""
+  })
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
+
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPtPrice(formatPrice(e.target.value))
+  }
 
   const mutation = useMutation({
     mutationFn: async (formData: FormData) => {
@@ -68,6 +79,7 @@ export function EditProfileForm({ initialProfile }: EditProfileFormProps) {
     defaultValues: {
       displayName: initialProfile.display_name || "",
       bio: initialProfile.bio || "",
+      ptDescription: initialProfile.pt_description || "",
     },
   })
 
@@ -106,6 +118,12 @@ export function EditProfileForm({ initialProfile }: EditProfileFormProps) {
 
     if (avatarFile) {
       formData.append("avatar", avatarFile)
+    }
+
+    // 강사인 경우 PT 정보도 포함
+    if (initialProfile.role === "instructor") {
+      formData.append("ptPricePerHour", parsePrice(ptPrice))
+      formData.append("ptDescription", data.ptDescription || "")
     }
 
     mutation.mutate(formData)
@@ -309,6 +327,59 @@ export function EditProfileForm({ initialProfile }: EditProfileFormProps) {
                   </p>
                 )}
               </div>
+
+              {/* PT 설정 (강사 전용) */}
+              {initialProfile.role === "instructor" && (
+                <div className="space-y-4 pt-4 border-t">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold">PT 정보</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    PT 신청 시 학생에게 보여지는 정보입니다
+                  </p>
+
+                  {/* PT 가격 */}
+                  <div className="grid gap-2">
+                    <Label htmlFor="ptPricePerHour">시간당 가격 (원)</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₩</span>
+                      <Input
+                        id="ptPricePerHour"
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="80,000"
+                        className="pl-8"
+                        value={ptPrice}
+                        onChange={handlePriceChange}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      PT 1시간 기준 가격을 입력하세요
+                    </p>
+                  </div>
+
+                  {/* PT 소개 */}
+                  <div className="grid gap-2">
+                    <Label htmlFor="ptDescription" className="flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      PT 소개
+                    </Label>
+                    <Textarea
+                      id="ptDescription"
+                      placeholder="초보자부터 중급자까지 1:1 맞춤 레슨을 진행합니다. 기초 테크닉부터 실전 스파링까지..."
+                      rows={4}
+                      {...register("ptDescription")}
+                    />
+                    {errors.ptDescription && (
+                      <p className="text-sm text-red-500">{errors.ptDescription.message}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      PT 진행 방식, 전문 분야 등을 소개해주세요 (최대 1000자)
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {mutation.error && (
                 <p className="text-sm text-red-500">{mutation.error.message}</p>

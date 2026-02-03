@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Pencil, MessageSquare, ThumbsUp } from "lucide-react"
 import type { CommunityPost } from "@/lib/database"
 import { requireAuth, getPostsByAuthor, getProfileById } from "@/lib/api/server"
+import { RichViewer } from "@/components/editor/rich-viewer"
 
 export default async function MypagePage() {
   const user = await requireAuth()
@@ -111,9 +112,9 @@ export default async function MypagePage() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="space-y-1 flex-1 min-w-0">
                       <h3 className="font-medium truncate">{post.title}</h3>
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {post.content}
-                      </p>
+                      <div className="text-sm text-muted-foreground line-clamp-2 [&_.ProseMirror]:p-0 [&_.ProseMirror]:min-h-0">
+                        <RichViewer content={post.content} className="!prose-sm" />
+                      </div>
                     </div>
                     <span className="text-xs text-muted-foreground shrink-0">
                       {new Date(post.created_at).toLocaleDateString("ko-KR")}
