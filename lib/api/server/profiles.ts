@@ -72,7 +72,7 @@ export async function getInstructorProfile(instructorId: string) {
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, display_name, avatar_url, bio")
+    .select("id, display_name, avatar_url, bio, pt_price_per_hour, pt_description")
     .eq("id", instructorId)
     .eq("role", "instructor")
     .single()
@@ -80,6 +80,26 @@ export async function getInstructorProfile(instructorId: string) {
   if (error) {
     console.error("[Profiles] Error fetching instructor:", error)
     return null
+  }
+
+  return data
+}
+
+/**
+ * Get all instructors
+ */
+export async function getAllInstructors() {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, display_name, avatar_url, bio, pt_price_per_hour, pt_description")
+    .eq("role", "instructor")
+    .order("created_at", { ascending: false })
+
+  if (error) {
+    console.error("[Profiles] Error fetching instructors:", error)
+    return []
   }
 
   return data

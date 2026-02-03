@@ -341,7 +341,7 @@ export function EditProfileForm({ initialProfile }: EditProfileFormProps) {
 
                   {/* PT 가격 */}
                   <div className="grid gap-2">
-                    <Label htmlFor="ptPricePerHour">시간당 가격 (원)</Label>
+                    <Label htmlFor="ptPricePerHour">1회 가격 (원)</Label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₩</span>
                       <Input
@@ -349,13 +349,13 @@ export function EditProfileForm({ initialProfile }: EditProfileFormProps) {
                         type="text"
                         inputMode="numeric"
                         placeholder="80,000"
-                        className="pl-8"
+                        className="pl-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         value={ptPrice}
                         onChange={handlePriceChange}
                       />
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      PT 1시간 기준 가격을 입력하세요
+                      1회에 60분입니다
                     </p>
                   </div>
 

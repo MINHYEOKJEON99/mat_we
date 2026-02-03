@@ -185,3 +185,33 @@ export interface InstructorApplication {
   reviewed_by: string | null;
   user?: Profile;
 }
+
+// 1:1 다이렉트 메시지
+export interface Conversation {
+  id: string;
+  participant_1_id: string;
+  participant_2_id: string;
+  last_message_at: string;
+  created_at: string;
+  participant_1?: Profile;
+  participant_2?: Profile;
+}
+
+export interface DirectMessage {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  content: string;
+  is_read: boolean;
+  created_at: string;
+  sender?: Profile;
+}
+
+// 대화 목록 아이템 (UI용)
+export interface ConversationListItem {
+  id: string;
+  partner: Pick<Profile, "id" | "display_name" | "avatar_url" | "role">;
+  lastMessage: string | null;
+  lastMessageAt: string;
+  unreadCount: number;
+}

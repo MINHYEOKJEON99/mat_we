@@ -12,7 +12,9 @@
       "Bash(curl:*)",
       "Bash(npm run email:dev:*)",
       "Bash(npx email:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(xargs:*)",
+      "mcp__plugin_claude-mem_mem-search__search"
     ]
   }
 }

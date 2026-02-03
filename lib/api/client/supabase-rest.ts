@@ -99,3 +99,28 @@ export async function supabaseDelete(
   const endpoint = `${table}?${query}`
   await supabaseRest(endpoint, { method: "DELETE" })
 }
+
+/**
+ * RPC 함수 호출
+ */
+export async function supabaseRpc<T = any>(
+  functionName: string,
+  params: Record<string, any> = {}
+): Promise<T> {
+  const accessToken = getAccessToken()
+  const url = `${SUPABASE_URL}/rest/v1/rpc/${functionName}`
+
+  try {
+    const response = await axios.post(url, params, {
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": `Bearer ${accessToken}`,
+      },
+    })
+    return response.data
+  } catch (error: any) {
+    console.error(`[SupabaseRpc] ${functionName} error:`, error.response?.data || error.message)
+    throw new Error(error.response?.data?.message || error.message || "RPC 호출 실패")
+  }
+}

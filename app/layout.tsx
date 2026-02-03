@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Analytics } from "@vercel/analytics/next"
 import { ThemeProvider } from "@/components/providers/theme-provider"
 import { QueryProvider } from "@/components/providers/query-provider"
+import { FloatingChatProvider } from "@/components/dm"
 import { Header } from "@/components/layout/header"
 import "./globals.css"
 
@@ -68,18 +69,20 @@ export default function RootLayout({
       <body className="font-sans antialiased">
         <QueryProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-            <a
-              href="#main-content"
-              className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md"
-            >
-              본문으로 건너뛰기
-            </a>
-            <div className="min-h-screen flex flex-col">
-              <Header />
-              <main id="main-content" className="flex-1" role="main">
-                {children}
-              </main>
-            </div>
+            <FloatingChatProvider>
+              <a
+                href="#main-content"
+                className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md"
+              >
+                본문으로 건너뛰기
+              </a>
+              <div className="min-h-screen flex flex-col">
+                <Header />
+                <main id="main-content" className="flex-1" role="main">
+                  {children}
+                </main>
+              </div>
+            </FloatingChatProvider>
           </ThemeProvider>
         </QueryProvider>
         <Analytics />
