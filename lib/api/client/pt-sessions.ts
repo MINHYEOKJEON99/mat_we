@@ -6,17 +6,29 @@ import { createClient } from "@/lib/client"
 export async function updatePTSessionStatus(
   sessionId: string,
   status: "pending" | "confirmed" | "completed" | "cancelled",
-  scheduledAt?: string
+  scheduledAt?: string,
+  location?: string,
+  locationDetail?: string
 ): Promise<void> {
   const supabase = createClient()
 
   const updateData: {
     status: string
     scheduled_at?: string
+    location?: string
+    location_detail?: string
   } = { status }
 
   if (scheduledAt) {
     updateData.scheduled_at = scheduledAt
+  }
+
+  if (location !== undefined) {
+    updateData.location = location
+  }
+
+  if (locationDetail !== undefined) {
+    updateData.location_detail = locationDetail
   }
 
   const { error } = await supabase

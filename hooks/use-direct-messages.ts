@@ -1,8 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useEffect } from "react"
 import { createClient } from "@/lib/client"
-import { supabaseRpc, supabaseInsert, supabaseUpdate } from "@/lib/api/client/supabase-rest"
-import type { Conversation, DirectMessage, ConversationListItem, Profile } from "@/lib/database"
+import { supabaseRpc, supabaseInsert, supabaseUpdate, supabaseDelete, supabaseSelect } from "@/lib/api/client/supabase-rest"
+import type { Conversation, DirectMessage, ConversationListItem, Profile, MessageType, MessageMetadata } from "@/lib/database"
 
 // Query Keys
 export const dmKeys = {
@@ -27,39 +27,23 @@ interface ConversationWithMessages {
 }
 
 /**
- * 현재 사용자의 모든 대화 목록 조회
+ * 현재 사용자의 모든 대화 목록 조회 (Axios REST 방식)
  */
 export function useConversations(userId: string | undefined) {
-  const supabase = createClient()
-
   return useQuery({
     queryKey: dmKeys.conversations(),
     queryFn: async (): Promise<ConversationListItem[]> => {
       if (!userId) return []
 
-      const { data, error } = await supabase
-        .from("conversations")
-        .select(`
-          id,
-          participant_1_id,
-          participant_2_id,
-          last_message_at,
-          participant_1:profiles!conversations_participant_1_id_fkey (
-            id, display_name, avatar_url, role
-          ),
-          participant_2:profiles!conversations_participant_2_id_fkey (
-            id, display_name, avatar_url, role
-          ),
-          direct_messages (
-            id, content, is_read, sender_id, created_at
-          )
-        `)
-        .or(`participant_1_id.eq.${userId},participant_2_id.eq.${userId}`)
-        .order("last_message_at", { ascending: false })
+      // REST API로 대화 목록 조회
+      const selectFields = "id,participant_1_id,participant_2_id,last_message_at,participant_1:profiles!conversations_participant_1_id_fkey(id,display_name,avatar_url,role),participant_2:profiles!conversations_participant_2_id_fkey(id,display_name,avatar_url,role),direct_messages(id,content,is_read,sender_id,created_at)"
 
-      if (error) throw error
+      const data = await supabaseSelect<ConversationWithMessages>(
+        "conversations",
+        `select=${selectFields}&or=(participant_1_id.eq.${userId},participant_2_id.eq.${userId})&order=last_message_at.desc`
+      )
 
-      return ((data as unknown as ConversationWithMessages[]) || []).map((conv) => {
+      return (data || []).map((conv) => {
         const isParticipant1 = conv.participant_1_id === userId
         const partner = isParticipant1 ? conv.participant_2 : conv.participant_1
 
@@ -113,29 +97,21 @@ export function useGetOrCreateConversation() {
 }
 
 /**
- * 특정 대화의 메시지 목록 조회
+ * 특정 대화의 메시지 목록 조회 (Axios REST 방식)
  */
 export function useMessages(conversationId: string | undefined) {
-  const supabase = createClient()
-
   return useQuery({
     queryKey: dmKeys.messages(conversationId || ""),
     queryFn: async () => {
       if (!conversationId) return []
 
-      const { data, error } = await supabase
-        .from("direct_messages")
-        .select(`
-          *,
-          sender:profiles!direct_messages_sender_id_fkey (
-            id, display_name, avatar_url
-          )
-        `)
-        .eq("conversation_id", conversationId)
-        .order("created_at", { ascending: true })
+      // REST API로 메시지 조회
+      const messages = await supabaseSelect<DirectMessage & { sender: PartnerProfile }>(
+        "direct_messages",
+        `select=*,sender:profiles!direct_messages_sender_id_fkey(id,display_name,avatar_url)&conversation_id=eq.${conversationId}&order=created_at.asc`
+      )
 
-      if (error) throw error
-      return data as (DirectMessage & { sender: PartnerProfile })[]
+      return messages
     },
     enabled: !!conversationId,
   })
@@ -152,18 +128,30 @@ export function useSendDirectMessage() {
     mutationFn: async ({
       conversationId,
       content,
+      type = "text",
+      metadata = null,
     }: {
       conversationId: string
       content: string
+      type?: MessageType
+      metadata?: MessageMetadata
     }) => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error("로그인이 필요합니다")
 
-      const result = await supabaseInsert<DirectMessage>("direct_messages", {
+      const insertData = {
         conversation_id: conversationId,
         sender_id: user.id,
         content: content.trim(),
-      })
+        type,
+        metadata,
+      }
+
+      console.log("[DM] 메시지 전송:", insertData)
+
+      const result = await supabaseInsert<DirectMessage>("direct_messages", insertData)
+
+      console.log("[DM] 전송 결과:", result)
 
       if (!result || result.length === 0) {
         throw new Error("메시지 전송에 실패했습니다")
@@ -173,6 +161,39 @@ export function useSendDirectMessage() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: dmKeys.messages(data.conversation_id) })
+      queryClient.invalidateQueries({ queryKey: dmKeys.conversations() })
+    },
+  })
+}
+
+/**
+ * 메시지 삭제
+ */
+export function useDeleteDirectMessage() {
+  const supabase = createClient()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      messageId,
+      conversationId,
+    }: {
+      messageId: string
+      conversationId: string
+    }) => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error("로그인이 필요합니다")
+
+      // 본인 메시지만 삭제 가능
+      await supabaseDelete(
+        "direct_messages",
+        `id=eq.${messageId}&sender_id=eq.${user.id}`
+      )
+
+      return { messageId, conversationId }
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: dmKeys.messages(data.conversationId) })
       queryClient.invalidateQueries({ queryKey: dmKeys.conversations() })
     },
   })

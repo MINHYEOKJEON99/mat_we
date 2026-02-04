@@ -1,59 +1,291 @@
-"use client"
+"use client";
 
-import { useState, useCallback, type KeyboardEvent } from "react"
-import { Send } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { useSendDirectMessage } from "@/hooks/use-direct-messages"
+import { useState, useCallback, useRef, useEffect, type KeyboardEvent } from "react";
+import { Send, Plus, Calendar, X, CalendarCheck, ClipboardList } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { useSendDirectMessage } from "@/hooks/use-direct-messages";
+import { useFloatingChat } from "./floating-chat-provider";
+import { useCurrentProfile } from "@/hooks";
+import { PTScheduler, PTCalendar } from "@/components/pt";
+import { cn } from "@/lib/utils";
 
 interface MessageInputProps {
-  conversationId: string
+  conversationId: string;
+  partnerId: string;
 }
 
-export function MessageInput({ conversationId }: MessageInputProps) {
-  const [content, setContent] = useState("")
-  const sendMessage = useSendDirectMessage()
+type ActivePanel = "scheduler" | "calendar" | "requests" | null;
+
+export function MessageInput({ conversationId, partnerId }: MessageInputProps) {
+  const [content, setContent] = useState("");
+  const [showMenu, setShowMenu] = useState(false);
+  const [activePanel, setActivePanel] = useState<ActivePanel>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const sendMessage = useSendDirectMessage();
+  const floatingChat = useFloatingChat();
+  const isExpanded = floatingChat?.isExpanded ?? false;
+  const { data: profile } = useCurrentProfile();
+
+  const isInstructor = profile?.role === "instructor";
+
+  // 메뉴 외부 클릭 감지
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleSend = useCallback(() => {
-    const trimmedContent = content.trim()
-    if (!trimmedContent || sendMessage.isPending) return
+    const trimmedContent = content.trim();
+    if (!trimmedContent || sendMessage.isPending) return;
 
     sendMessage.mutate(
       { conversationId, content: trimmedContent },
       {
         onSuccess: () => {
-          setContent("")
+          setContent("");
         },
       }
-    )
-  }, [content, conversationId, sendMessage])
+    );
+  }, [content, conversationId, sendMessage]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
+      e.preventDefault();
+      handleSend();
     }
-  }
+  };
+
+  const handleScheduleConfirm = async (data: {
+    scheduledAt: string;
+    endAt: string;
+    location: string;
+    locationDetail: string;
+  }) => {
+    const startDate = new Date(data.scheduledAt);
+    const endDate = new Date(data.endAt);
+
+    const dateStr = startDate.toLocaleDateString("ko-KR", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      weekday: "short",
+    });
+
+    const startTimeStr = startDate.toLocaleTimeString("ko-KR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    const endTimeStr = endDate.toLocaleTimeString("ko-KR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    await sendMessage.mutateAsync({
+      conversationId,
+      content: "PT 일정이 확정되었습니다",
+      type: "pt_schedule",
+      metadata: {
+        date: dateStr,
+        startTime: startTimeStr,
+        endTime: endTimeStr,
+        location: data.location,
+        locationDetail: data.locationDetail || undefined,
+      },
+    });
+
+    setActivePanel(null);
+    setShowMenu(false);
+  };
+
+  const closePanel = () => {
+    setActivePanel(null);
+    setSelectedDate(null);
+  };
+
+  const panelPosition = cn(
+    "fixed z-[60] bg-background border rounded-xl shadow-2xl overflow-hidden flex flex-col",
+    "max-md:right-auto max-md:left-4 max-md:bottom-4 max-md:w-[calc(100%-2rem)] max-md:max-h-[60vh]",
+    isExpanded ? "md:right-[650px] md:bottom-6" : "md:right-[420px] md:bottom-24"
+  );
 
   return (
-    <div className="flex items-end gap-2 p-3 border-t bg-background">
-      <Textarea
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder="메시지를 입력하세요..."
-        className="min-h-[40px] max-h-[120px] resize-none rounded-xl"
-        rows={1}
-        disabled={sendMessage.isPending}
-      />
-      <Button
-        onClick={handleSend}
-        disabled={!content.trim() || sendMessage.isPending}
-        size="icon"
-        className="h-10 w-10 shrink-0 rounded-full"
-      >
-        <Send className="h-4 w-4" />
-      </Button>
+    <div className="relative">
+      {/* PT 스케줄러 패널 */}
+      {activePanel === "scheduler" && (
+        <div className={cn(panelPosition, "w-[320px] max-h-[480px]")}>
+          <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
+            <h3 className="font-semibold text-sm">PT 일정 잡기</h3>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={closePanel}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="p-3 overflow-y-auto flex-1">
+            <PTScheduler
+              sessionId={conversationId}
+              onConfirm={handleScheduleConfirm}
+              onCancel={closePanel}
+              compact
+            />
+          </div>
+        </div>
+      )}
+
+      {/* PT 일정 확인 캘린더 패널 */}
+      {activePanel === "calendar" && (
+        <div className={cn(panelPosition, "w-[320px] max-h-[420px]")}>
+          <div className="flex items-center justify-between px-4 py-3 border-b bg-emerald-50">
+            <h3 className="font-semibold text-sm text-emerald-800">PT 일정 확인</h3>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={closePanel}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="p-3 overflow-y-auto flex-1">
+            <PTCalendar
+              selectedDate={selectedDate}
+              onSelectDate={setSelectedDate}
+              compact
+            />
+            {selectedDate && (
+              <div className="mt-3 p-3 bg-slate-50 rounded-lg">
+                <p className="text-sm text-slate-600">
+                  {selectedDate.toLocaleDateString("ko-KR", {
+                    month: "long",
+                    day: "numeric",
+                    weekday: "short",
+                  })}
+                </p>
+                <p className="text-xs text-slate-400 mt-1">등록된 PT 일정이 없습니다</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* PT 요청 확인 패널 (강사 전용) */}
+      {activePanel === "requests" && isInstructor && (
+        <div className={cn(panelPosition, "w-[320px] max-h-[400px]")}>
+          <div className="flex items-center justify-between px-4 py-3 border-b bg-slate-700">
+            <h3 className="font-semibold text-sm text-white">PT 요청 확인</h3>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-white hover:bg-slate-600" onClick={closePanel}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="p-4 overflow-y-auto flex-1">
+            <div className="text-center py-8">
+              <ClipboardList className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+              <p className="text-sm text-slate-500">대기 중인 PT 요청이 없습니다</p>
+              <p className="text-xs text-slate-400 mt-1">새로운 요청이 오면 여기에 표시됩니다</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 추가 메뉴 */}
+      {showMenu && (
+        <div
+          ref={menuRef}
+          className="absolute bottom-full left-3 mb-2 bg-background border rounded-xl shadow-lg overflow-hidden min-w-[200px]"
+        >
+          {/* PT 일정 잡기 */}
+          <button
+            type="button"
+            onClick={() => {
+              setActivePanel("scheduler");
+              setShowMenu(false);
+            }}
+            className="flex items-center gap-3 px-4 py-3 hover:bg-muted transition-colors w-full text-left"
+          >
+            <div className="p-2 bg-slate-100 rounded-lg">
+              <Calendar className="h-4 w-4 text-slate-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium">PT 일정 잡기</p>
+              <p className="text-xs text-muted-foreground">날짜, 시간, 장소 설정</p>
+            </div>
+          </button>
+
+          {/* PT 일정 확인하기 */}
+          <button
+            type="button"
+            onClick={() => {
+              setActivePanel("calendar");
+              setShowMenu(false);
+            }}
+            className="flex items-center gap-3 px-4 py-3 hover:bg-muted transition-colors w-full text-left border-t"
+          >
+            <div className="p-2 bg-emerald-100 rounded-lg">
+              <CalendarCheck className="h-4 w-4 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium">PT 일정 확인</p>
+              <p className="text-xs text-muted-foreground">예정된 PT 일정 보기</p>
+            </div>
+          </button>
+
+          {/* PT 요청 확인하기 (강사 전용) */}
+          {isInstructor && (
+            <button
+              type="button"
+              onClick={() => {
+                setActivePanel("requests");
+                setShowMenu(false);
+              }}
+              className="flex items-center gap-3 px-4 py-3 hover:bg-muted transition-colors w-full text-left border-t"
+            >
+              <div className="p-2 bg-amber-100 rounded-lg">
+                <ClipboardList className="h-4 w-4 text-amber-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">PT 요청 확인</p>
+                <p className="text-xs text-muted-foreground">대기 중인 요청 관리</p>
+              </div>
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* 입력 영역 */}
+      <div className="flex items-end gap-2 p-3 border-t bg-background">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className={cn(
+            "h-10 w-10 shrink-0 rounded-full transition-transform",
+            showMenu && "rotate-45"
+          )}
+          onClick={() => setShowMenu(!showMenu)}
+        >
+          <Plus className="h-5 w-5" />
+        </Button>
+
+        <Textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="메시지를 입력하세요..."
+          className="min-h-[40px] max-h-[120px] resize-none rounded-xl"
+          rows={1}
+          disabled={sendMessage.isPending}
+        />
+        <Button
+          onClick={handleSend}
+          disabled={!content.trim() || sendMessage.isPending}
+          size="icon"
+          className="h-10 w-10 shrink-0 rounded-full"
+        >
+          <Send className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
-  )
+  );
 }

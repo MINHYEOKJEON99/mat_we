@@ -57,24 +57,20 @@ export function PTRequestForm({
         partnerId: instructorId,
       })
 
-      // 2. PT 신청 카드 메시지 생성
+      // 2. PT 신청 메시지 전송 (type + metadata 사용)
       const sessionsNum = parseInt(sessions) || 1
       const total = sessionsNum * pricePerSession
 
-      const ptRequestMessage = `[PT 신청]
-━━━━━━━━━━━━━━━━
-📋 신청 내역
-• 횟수: ${sessionsNum}회
-• 1회 가격: ${formatPrice(pricePerSession)}원
-• 총 금액: ${formatPrice(total)}원
-━━━━━━━━━━━━━━━━
-${notes ? `💬 요청사항\n${notes}\n━━━━━━━━━━━━━━━━` : ""}
-PT 신청을 원합니다. 확인 부탁드립니다!`
-
-      // 3. 메시지 전송
       await sendMessage.mutateAsync({
         conversationId,
-        content: ptRequestMessage,
+        content: "PT 신청을 원합니다. 확인 부탁드립니다!",
+        type: "pt_request",
+        metadata: {
+          sessions: sessionsNum,
+          pricePerSession: pricePerSession,
+          totalPrice: total,
+          notes: notes || undefined,
+        },
       })
 
       // 4. 채팅 열기

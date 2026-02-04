@@ -14,7 +14,9 @@
       "Bash(npx email:*)",
       "Bash(npx tsc:*)",
       "Bash(xargs:*)",
-      "mcp__plugin_claude-mem_mem-search__search"
+      "mcp__plugin_claude-mem_mem-search__search",
+      "WebFetch(domain:postcode.map.daum.net)",
+      "mcp__ide__getDiagnostics"
     ]
   }
 }

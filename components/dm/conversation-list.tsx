@@ -1,23 +1,23 @@
-"use client"
+"use client";
 
-import { useConversations, useCurrentProfile } from "@/hooks"
-import { ConversationListItem } from "./conversation-list-item"
-import { MessageCircle } from "lucide-react"
+import { useConversations, useCurrentProfile } from "@/hooks";
+import { ConversationListItem } from "./conversation-list-item";
+import { MessageCircle } from "lucide-react";
 
 interface ConversationListProps {
-  onSelectConversation: (conversationId: string) => void
+  onSelectConversation: (conversationId: string) => void;
 }
 
 export function ConversationList({ onSelectConversation }: ConversationListProps) {
-  const { data: profile } = useCurrentProfile()
-  const { data: conversations = [], isLoading } = useConversations(profile?.id)
+  const { data: profile } = useCurrentProfile();
+  const { data: conversations = [], isLoading } = useConversations(profile?.id);
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full" />
       </div>
-    )
+    );
   }
 
   if (conversations.length === 0) {
@@ -27,7 +27,7 @@ export function ConversationList({ onSelectConversation }: ConversationListProps
         <p className="font-medium">대화가 없습니다</p>
         <p className="text-sm mt-1">강사 프로필에서 메시지를 보내 대화를 시작하세요</p>
       </div>
-    )
+    );
   }
 
   return (
@@ -40,5 +40,5 @@ export function ConversationList({ onSelectConversation }: ConversationListProps
         />
       ))}
     </div>
-  )
+  );
 }

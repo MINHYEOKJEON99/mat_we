@@ -126,6 +126,8 @@ export interface PTSession {
   status: PTSessionStatus;
   price: number;
   notes: string | null;
+  location: string | null;
+  location_detail: string | null;
   created_at: string;
   updated_at: string;
   instructor?: Profile;
@@ -197,11 +199,35 @@ export interface Conversation {
   participant_2?: Profile;
 }
 
+// 메시지 타입
+export type MessageType = "text" | "pt_request" | "pt_schedule";
+
+// PT 신청 메타데이터
+export interface PTRequestMetadata {
+  sessions: number;
+  pricePerSession: number;
+  totalPrice: number;
+  notes?: string;
+}
+
+// PT 일정 메타데이터
+export interface PTScheduleMetadata {
+  date: string;
+  startTime: string;
+  endTime: string;
+  location: string;
+  locationDetail?: string;
+}
+
+export type MessageMetadata = PTRequestMetadata | PTScheduleMetadata | null;
+
 export interface DirectMessage {
   id: string;
   conversation_id: string;
   sender_id: string;
   content: string;
+  type?: MessageType;  // DB 마이그레이션 전에는 undefined일 수 있음
+  metadata?: MessageMetadata;  // nullable
   is_read: boolean;
   created_at: string;
   sender?: Profile;
