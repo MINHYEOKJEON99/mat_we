@@ -1,15 +1,16 @@
 "use client"
 
-import { useState, useEffect, useMemo, use } from "react"
+import { useState, useEffect, use } from "react"
 import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { VideoPlayer } from "@/components/course/video-player"
 import { VideoList } from "@/components/course/video-list"
 import { CourseComments } from "@/components/course/course-comments"
-import type { CourseVideo } from "@/lib/database"
+import { useCurrentProfile } from "@/hooks"
+import { useCourse, useCourseVideos } from "@/hooks/use-courses"
+import { useCheckEnrollment } from "@/hooks/use-enrollments"
 
 interface PageProps {
   params: Promise<{ courseId: string }>
@@ -17,69 +18,31 @@ interface PageProps {
 
 export default function StudentCourseViewPage({ params }: PageProps) {
   const router = useRouter()
-  const supabase = useMemo(() => createClient(), [])
   const { courseId } = use(params)
-
-  const [userId, setUserId] = useState<string>("")
-  const [course, setCourse] = useState<any>(null)
-  const [videos, setVideos] = useState<CourseVideo[]>([])
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0)
-  const [loading, setLoading] = useState(true)
 
+  const { data: profile, isLoading: profileLoading } = useCurrentProfile()
+  const { data: course, isLoading: courseLoading } = useCourse(courseId)
+  const { data: videos = [], isLoading: videosLoading } = useCourseVideos(courseId)
+  const { data: isEnrolled, isLoading: enrollmentLoading } = useCheckEnrollment(profile?.id, courseId)
+
+  // 미로그인 → 로그인 페이지
   useEffect(() => {
-
-    async function loadData() {
-      // Check auth
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push("/auth/login")
-        return
-      }
-
-      setUserId(user.id)
-
-      // Check enrollment
-      const { data: enrollment } = await supabase
-        .from("enrollments")
-        .select("*")
-        .eq("student_id", user.id)
-        .eq("course_id", courseId)
-        .single()
-
-      if (!enrollment) {
-        router.push(`/courses/${courseId}`)
-        return
-      }
-
-      // Get course
-      const { data: courseData } = await supabase
-        .from("courses")
-        .select("*, instructor:profiles!courses_instructor_id_fkey(*)")
-        .eq("id", courseId)
-        .single()
-
-      if (!courseData) {
-        router.push("/404")
-        return
-      }
-
-      // Get videos
-      const { data: videosData } = await supabase
-        .from("course_videos")
-        .select("*")
-        .eq("course_id", courseId)
-        .order("order_index", { ascending: true })
-
-      setCourse(courseData)
-      setVideos(videosData || [])
-      setLoading(false)
+    if (!profileLoading && !profile) {
+      router.push("/auth/login")
     }
+  }, [profileLoading, profile, router])
 
-    loadData()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [courseId])
+  // 미수강 → 강의 소개 페이지
+  useEffect(() => {
+    if (!enrollmentLoading && profile && isEnrolled === false) {
+      router.push(`/courses/${courseId}`)
+    }
+  }, [enrollmentLoading, profile, isEnrolled, courseId, router])
 
-  if (loading) {
+  const loading = profileLoading || courseLoading || videosLoading || enrollmentLoading
+
+  if (loading || !profile || !isEnrolled) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <p className="text-muted-foreground">로딩 중...</p>
@@ -154,7 +117,7 @@ export default function StudentCourseViewPage({ params }: PageProps) {
               </CardContent>
             </Card>
 
-            {userId && <CourseComments courseId={courseId} currentUserId={userId} />}
+            <CourseComments courseId={courseId} currentUserId={profile.id} />
           </div>
 
           <div className="space-y-6">
