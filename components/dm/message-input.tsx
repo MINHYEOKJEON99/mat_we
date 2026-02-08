@@ -6,11 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useSendDirectMessage, useMessages } from "@/hooks/use-direct-messages";
 import { useInstructorPTSessions, useStudentPTSessions } from "@/hooks/use-pt-sessions";
-import { useFloatingChat } from "./floating-chat-provider";
 import { useCurrentProfile } from "@/hooks";
-import { PTScheduler, PTCalendar } from "@/components/pt";
+import { PTScheduler } from "@/components/pt";
 import { cn } from "@/lib/utils";
-import type { PTRequestMetadata, PTScheduleMetadata } from "@/lib/database";
+import type { PTScheduleMetadata } from "@/lib/database";
+
+// "2026년 2월 18일 (수)" 형태의 한국어 날짜 문자열을 타임스탬프로 변환
+function parseKoreanDate(dateStr: string): number {
+  const match = dateStr.match(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/);
+  if (!match) return 0;
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])).getTime();
+}
 
 interface MessageInputProps {
   conversationId: string;
@@ -27,8 +33,6 @@ export function MessageInput({ conversationId, partnerId }: MessageInputProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const sendMessage = useSendDirectMessage();
-  const floatingChat = useFloatingChat();
-  const isExpanded = floatingChat?.isExpanded ?? false;
   const { data: profile } = useCurrentProfile();
 
   const isInstructor = profile?.role === "instructor";
@@ -46,7 +50,15 @@ export function MessageInput({ conversationId, partnerId }: MessageInputProps) {
 
   // DM에서 PT 일정 확정 메시지
   const scheduleMessages = useMemo(() => {
-    return messages.filter((m) => m.type === "pt_schedule" && m.metadata);
+    return messages
+      .filter((m) => m.type === "pt_schedule" && m.metadata)
+      .sort((a, b) => {
+        const metaA = a.metadata as PTScheduleMetadata;
+        const metaB = b.metadata as PTScheduleMetadata;
+        const dateA = parseKoreanDate(metaA.date);
+        const dateB = parseKoreanDate(metaB.date);
+        return dateA - dateB;
+      });
   }, [messages]);
 
   // 메뉴 외부 클릭 감지
@@ -135,17 +147,11 @@ export function MessageInput({ conversationId, partnerId }: MessageInputProps) {
     setSelectedDate(null);
   };
 
-  const panelPosition = cn(
-    "fixed z-[60] bg-background border rounded-xl shadow-2xl overflow-hidden flex flex-col",
-    "max-md:right-auto max-md:left-4 max-md:bottom-4 max-md:w-[calc(100%-2rem)] max-md:max-h-[60vh]",
-    isExpanded ? "md:right-[650px] md:bottom-6" : "md:right-[420px] md:bottom-24",
-  );
-
   return (
-    <div className="relative">
+    <div className="relative bg-white dark:bg-gray-600">
       {/* PT 스케줄러 패널 */}
       {activePanel === "scheduler" && (
-        <div className={cn(panelPosition, "w-[320px] max-h-[480px]")}>
+        <div className="border-t max-h-[400px] overflow-hidden flex flex-col">
           <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
             <h3 className="font-semibold text-sm">PT 일정 잡기</h3>
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={closePanel}>
@@ -160,7 +166,7 @@ export function MessageInput({ conversationId, partnerId }: MessageInputProps) {
 
       {/* PT 일정 확인 캘린더 패널 */}
       {activePanel === "calendar" && (
-        <div className={cn(panelPosition, "w-[320px] max-h-[420px]")}>
+        <div className="border-t max-h-[350px] overflow-hidden flex flex-col">
           <div className="flex items-center justify-between px-4 py-3 border-b bg-emerald-50">
             <h3 className="font-semibold text-sm text-emerald-800">PT 일정 확인</h3>
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={closePanel}>
@@ -170,7 +176,7 @@ export function MessageInput({ conversationId, partnerId }: MessageInputProps) {
           <div className="p-3 overflow-y-auto flex-1">
             {/* DM으로 확정된 PT 일정 목록 */}
             {scheduleMessages.length > 0 && (
-              <div className="mt-4 space-y-2">
+              <div className="space-y-2">
                 <h4 className="text-xs font-medium text-slate-500">확정된 일정</h4>
                 {scheduleMessages.map((msg) => {
                   const meta = msg.metadata as PTScheduleMetadata;
@@ -200,7 +206,7 @@ export function MessageInput({ conversationId, partnerId }: MessageInputProps) {
 
             {/* 데이터 없음 상태 */}
             {!selectedDate && scheduleMessages.length === 0 && partnerPTSessions.length === 0 && (
-              <div className="mt-3 text-center py-4">
+              <div className="text-center py-4">
                 <CalendarCheck className="h-10 w-10 text-slate-200 mx-auto mb-2" />
                 <p className="text-xs text-slate-400">아직 확정된 PT 일정이 없습니다</p>
               </div>
@@ -251,7 +257,7 @@ export function MessageInput({ conversationId, partnerId }: MessageInputProps) {
       )}
 
       {/* 입력 영역 */}
-      <div className="flex items-end gap-2 p-3 border-t bg-background">
+      <div className="flex items-end gap-2 p-3 border-t bg-white dark:bg-gray-600">
         <Button
           ref={buttonRef}
           type="button"

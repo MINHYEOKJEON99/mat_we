@@ -39,7 +39,7 @@ export function FloatingChatProvider({ children }: { children: React.ReactNode }
   const [isOpen, setIsOpen] = useState(false);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [pendingPartnerId, setPendingPartnerId] = useState<string | null>(null);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
 
   const { data: profile } = useCurrentProfile();
 
@@ -79,8 +79,7 @@ export function FloatingChatProvider({ children }: { children: React.ReactNode }
         clearPendingPartner,
         isExpanded,
         toggleExpand,
-      }}
-    >
+      }}>
       {children}
       {profile && <FloatingChatButton />}
       {profile && <ChatPanel />}

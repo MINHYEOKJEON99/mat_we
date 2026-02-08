@@ -80,6 +80,7 @@ export function VideoPlayer({ src, title, tracks = [] }: VideoPlayerProps) {
   const [autoSubtitleUrl, setAutoSubtitleUrl] = useState<string | null>(null);
   const [subtitleStatus, setSubtitleStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [statusText, setStatusText] = useState("");
+  const [subtitleLang, setSubtitleLang] = useState("korean");
 
   const generateSubtitles = useCallback(async () => {
     if (!videoSrc || subtitleStatus === "loading") return;
@@ -105,6 +106,8 @@ export function VideoPlayer({ src, title, tracks = [] }: VideoPlayerProps) {
         chunk_length_s: 30,
         stride_length_s: 5,
         return_timestamps: true,
+        language: subtitleLang,
+        task: "transcribe",
       });
 
       // VTT 생성
@@ -128,7 +131,7 @@ export function VideoPlayer({ src, title, tracks = [] }: VideoPlayerProps) {
       setSubtitleStatus("error");
       setStatusText("자막 생성에 실패했습니다");
     }
-  }, [videoSrc, subtitleStatus]);
+  }, [videoSrc, subtitleStatus, subtitleLang]);
 
   if (!videoSrc) return null;
 
@@ -169,29 +172,43 @@ export function VideoPlayer({ src, title, tracks = [] }: VideoPlayerProps) {
       </div>
 
       {subtitleStatus !== "done" && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={generateSubtitles}
-          disabled={subtitleStatus === "loading"}
-          className="gap-2">
-          {subtitleStatus === "loading" ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              {statusText}
-            </>
-          ) : subtitleStatus === "error" ? (
-            <>
-              <Subtitles className="w-4 h-4" />
-              다시 시도
-            </>
-          ) : (
-            <>
-              <Subtitles className="w-4 h-4" />
-              AI 자동 자막 생성
-            </>
-          )}
-        </Button>
+        <div className="flex items-center gap-2">
+          <select
+            value={subtitleLang}
+            onChange={(e) => setSubtitleLang(e.target.value)}
+            disabled={subtitleStatus === "loading"}
+            className="h-9 rounded-md border border-input bg-background px-3 text-sm">
+            <option value="korean">한국어</option>
+            <option value="english">English</option>
+            <option value="japanese">日本語</option>
+            <option value="chinese">中文</option>
+            <option value="spanish">Español</option>
+            <option value="french">Français</option>
+          </select>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={generateSubtitles}
+            disabled={subtitleStatus === "loading"}
+            className="gap-2">
+            {subtitleStatus === "loading" ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                {statusText}
+              </>
+            ) : subtitleStatus === "error" ? (
+              <>
+                <Subtitles className="w-4 h-4" />
+                다시 시도
+              </>
+            ) : (
+              <>
+                <Subtitles className="w-4 h-4" />
+                AI 자동 자막 생성
+              </>
+            )}
+          </Button>
+        </div>
       )}
     </div>
   );
