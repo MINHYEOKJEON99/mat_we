@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { EnrollButton } from "@/components/course/enroll-button";
 import { Play, Lock, Clock } from "lucide-react";
-import Image from "next/image";
 
 export default async function CourseDetailPage({ params }: { params: Promise<{ courseId: string }> }) {
   const { courseId } = await params;
@@ -86,21 +85,9 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
                   {videos.map((video, index) => (
                     <Card key={video.id} className="overflow-hidden hover:shadow-md transition-shadow">
                       <div className="relative aspect-video bg-muted">
-                        {/* Mux 썸네일 또는 기본 배경 */}
-                        {video.mux_playback_id ? (
-                          <Image
-                            src={`https://image.mux.com/${video.mux_playback_id}/thumbnail.jpg?width=640&height=360&fit_mode=smartcrop`}
-                            alt={video.title}
-                            fill
-                            className="object-cover"
-                          />
-                        ) : course.thumbnail_url ? (
-                          <div />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Play className="h-16 w-16 text-muted-foreground/30" />
-                          </div>
-                        )}
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Play className="h-16 w-16 text-muted-foreground/30" />
+                        </div>
 
                         {/* 오버레이 */}
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center">

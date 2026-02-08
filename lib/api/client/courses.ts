@@ -51,8 +51,7 @@ export async function addCourseVideo(data: {
   course_id: string
   title: string
   description: string | null
-  mux_playback_id: string | null
-  mux_asset_id: string | null
+  video_url: string | null
   duration: number | null
   order_index: number
 }): Promise<void> {

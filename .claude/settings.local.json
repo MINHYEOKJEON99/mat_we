@@ -17,7 +17,11 @@
       "mcp__plugin_claude-mem_mem-search__search",
       "WebFetch(domain:postcode.map.daum.net)",
       "mcp__ide__getDiagnostics",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(npm view:*)",
+      "WebSearch",
+      "WebFetch(domain:vidstack.io)",
+      "Bash(python3:*)"
     ]
   }
 }

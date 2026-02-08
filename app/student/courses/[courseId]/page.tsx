@@ -66,21 +66,11 @@ export default function StudentCourseViewPage({ params }: PageProps) {
 
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-6">
-            {currentVideo && currentVideo.mux_playback_id ? (
-              <VideoPlayer playbackId={currentVideo.mux_playback_id} title={currentVideo.title} />
-            ) : currentVideo && currentVideo.video_url ? (
-              <div className="w-full rounded-lg overflow-hidden bg-black">
-                <video
-                  key={currentVideo.id}
-                  controls
-                  className="w-full aspect-video"
-                  src={currentVideo.video_url}
-                  title={currentVideo.title}
-                >
-                  <track kind="captions" />
-                  브라우저가 비디오 태그를 지원하지 않습니다.
-                </video>
-              </div>
+            {currentVideo && currentVideo.video_url ? (
+              <VideoPlayer
+                src={currentVideo.video_url}
+                title={currentVideo.title}
+              />
             ) : (
               <Card>
                 <CardContent className="flex items-center justify-center h-96">

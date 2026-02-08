@@ -58,7 +58,7 @@ export default async function CourseVideosPage({ params }: { params: Promise<{ c
           <Card>
             <CardHeader>
               <CardTitle>새 영상 추가</CardTitle>
-              <CardDescription>Mux에서 생성한 영상 정보를 입력하세요</CardDescription>
+              <CardDescription>영상 정보를 입력하세요</CardDescription>
             </CardHeader>
             <CardContent>
               <AddVideoForm courseId={courseId} />
@@ -88,7 +88,6 @@ export default async function CourseVideosPage({ params }: { params: Promise<{ c
                   </CardHeader>
                   <CardContent>
                     <div className="text-sm text-muted-foreground space-y-1">
-                      {video.mux_playback_id && <p>Playback ID: {video.mux_playback_id}</p>}
                       {video.duration && (
                         <p>
                           재생시간: {Math.floor(video.duration / 60)}분 {video.duration % 60}초

@@ -66,8 +66,6 @@ export interface CourseVideo {
   title: string;
   description: string | null;
   video_url: string | null;
-  mux_playback_id: string | null;
-  mux_asset_id: string | null;
   duration: number | null;
   order_index: number;
   created_at: string;

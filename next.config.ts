@@ -7,11 +7,7 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "**.supabase.co",
       },
-      {
-        protocol: "https",
-        hostname: "*.mux.com",
-      },
-      {
+{
         protocol: "https",
         hostname: "images.unsplash.com",
       },
@@ -19,6 +15,14 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     optimizePackageImports: ["lucide-react"],
+  },
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      "sharp$": false,
+      "onnxruntime-node$": false,
+    };
+    return config;
   },
 };
 

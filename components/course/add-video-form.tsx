@@ -17,8 +17,7 @@ interface AddVideoFormProps {
 export function AddVideoForm({ courseId }: AddVideoFormProps) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
-  const [muxPlaybackId, setMuxPlaybackId] = useState("")
-  const [muxAssetId, setMuxAssetId] = useState("")
+  const [videoUrl, setVideoUrl] = useState("")
   const [duration, setDuration] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -37,8 +36,7 @@ export function AddVideoForm({ courseId }: AddVideoFormProps) {
         course_id: courseId,
         title,
         description: description || null,
-        mux_playback_id: muxPlaybackId || null,
-        mux_asset_id: muxAssetId || null,
+        video_url: videoUrl || null,
         duration: duration ? Number.parseInt(duration) : null,
         order_index: nextOrderIndex,
       })
@@ -46,8 +44,7 @@ export function AddVideoForm({ courseId }: AddVideoFormProps) {
       // Reset form
       setTitle("")
       setDescription("")
-      setMuxPlaybackId("")
-      setMuxAssetId("")
+      setVideoUrl("")
       setDuration("")
       router.refresh()
     } catch (error: unknown) {
@@ -82,22 +79,12 @@ export function AddVideoForm({ courseId }: AddVideoFormProps) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="mux-playback-id">Mux Playback ID</Label>
+        <Label htmlFor="video-url">영상 URL</Label>
         <Input
-          id="mux-playback-id"
-          placeholder="예: abc123def456"
-          value={muxPlaybackId}
-          onChange={(e) => setMuxPlaybackId(e.target.value)}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="mux-asset-id">Mux Asset ID (선택)</Label>
-        <Input
-          id="mux-asset-id"
-          placeholder="예: xyz789"
-          value={muxAssetId}
-          onChange={(e) => setMuxAssetId(e.target.value)}
+          id="video-url"
+          placeholder="예: https://example.com/video.mp4"
+          value={videoUrl}
+          onChange={(e) => setVideoUrl(e.target.value)}
         />
       </div>
 
