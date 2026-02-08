@@ -133,8 +133,7 @@ export function CommunityPostList({ posts, totalCount }: CommunityPostListProps)
               currentTab === "all"
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
+            }`}>
             전체글
           </button>
           <button
@@ -143,8 +142,7 @@ export function CommunityPostList({ posts, totalCount }: CommunityPostListProps)
               currentTab === "popular"
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
+            }`}>
             개념글
           </button>
           <button
@@ -153,8 +151,7 @@ export function CommunityPostList({ posts, totalCount }: CommunityPostListProps)
               currentTab === "notice"
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
+            }`}>
             공지
           </button>
         </div>
@@ -162,8 +159,7 @@ export function CommunityPostList({ posts, totalCount }: CommunityPostListProps)
           <select
             value={postsPerPage}
             onChange={(e) => handlePostsPerPageChange(Number(e.target.value))}
-            className="h-8 px-2 text-xs border rounded bg-background"
-          >
+            className="h-8 px-2 text-xs border rounded bg-background">
             <option value={30}>30개</option>
             <option value={50}>50개</option>
             <option value={100}>100개</option>
@@ -178,7 +174,7 @@ export function CommunityPostList({ posts, totalCount }: CommunityPostListProps)
       </div>
 
       {/* Post Table */}
-      <div className="border border-t-0">
+      <div className="border border-t-0 bg-white dark:bg-background">
         {/* Table Header */}
         <div className="grid grid-cols-[60px_1fr_100px_80px_60px_50px] gap-2 px-3 py-2 bg-muted/50 text-xs font-medium text-muted-foreground border-b">
           <div className="text-center">번호</div>
@@ -210,8 +206,7 @@ export function CommunityPostList({ posts, totalCount }: CommunityPostListProps)
             <Link
               key={post.id}
               href={`/community/${post.id}`}
-              className="grid grid-cols-[60px_1fr_100px_80px_60px_50px] gap-2 px-3 py-2 text-sm border-b last:border-b-0 hover:bg-accent/50 transition-colors items-center"
-            >
+              className="grid grid-cols-[60px_1fr_100px_80px_60px_50px] gap-2 px-3 py-2 text-sm border-b last:border-b-0 hover:bg-accent/50 transition-colors items-center">
               <div className="text-center text-xs text-muted-foreground">{startNumber - index}</div>
               <div className="flex items-center gap-1 min-w-0">
                 <span className="truncate font-medium">{post.title}</span>
@@ -245,15 +240,13 @@ export function CommunityPostList({ posts, totalCount }: CommunityPostListProps)
         <button
           onClick={() => setCurrentPage(1)}
           disabled={currentPage === 1}
-          className="p-1.5 rounded hover:bg-muted disabled:opacity-50 disabled:pointer-events-none"
-        >
+          className="p-1.5 rounded hover:bg-muted disabled:opacity-50 disabled:pointer-events-none">
           <ChevronsLeft className="h-4 w-4" />
         </button>
         <button
           onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
           disabled={currentPage === 1}
-          className="p-1.5 rounded hover:bg-muted disabled:opacity-50 disabled:pointer-events-none"
-        >
+          className="p-1.5 rounded hover:bg-muted disabled:opacity-50 disabled:pointer-events-none">
           <ChevronLeft className="h-4 w-4" />
         </button>
 
@@ -263,8 +256,7 @@ export function CommunityPostList({ posts, totalCount }: CommunityPostListProps)
             onClick={() => setCurrentPage(pageNum)}
             className={`px-3 py-1 text-sm rounded transition-colors ${
               currentPage === pageNum ? "bg-primary text-primary-foreground" : "hover:bg-muted"
-            }`}
-          >
+            }`}>
             {pageNum}
           </button>
         ))}
@@ -272,15 +264,13 @@ export function CommunityPostList({ posts, totalCount }: CommunityPostListProps)
         <button
           onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
           disabled={currentPage === totalPages}
-          className="p-1.5 rounded hover:bg-muted disabled:opacity-50 disabled:pointer-events-none"
-        >
+          className="p-1.5 rounded hover:bg-muted disabled:opacity-50 disabled:pointer-events-none">
           <ChevronRight className="h-4 w-4" />
         </button>
         <button
           onClick={() => setCurrentPage(totalPages)}
           disabled={currentPage === totalPages}
-          className="p-1.5 rounded hover:bg-muted disabled:opacity-50 disabled:pointer-events-none"
-        >
+          className="p-1.5 rounded hover:bg-muted disabled:opacity-50 disabled:pointer-events-none">
           <ChevronsRight className="h-4 w-4" />
         </button>
       </div>
@@ -290,8 +280,7 @@ export function CommunityPostList({ posts, totalCount }: CommunityPostListProps)
         <select
           value={searchFilter}
           onChange={(e) => setSearchFilter(e.target.value)}
-          className="h-9 px-3 text-sm border rounded bg-background"
-        >
+          className="h-9 px-3 text-sm border rounded bg-background">
           <option value="title">제목</option>
           <option value="content">내용</option>
           <option value="title_content">제목+내용</option>
