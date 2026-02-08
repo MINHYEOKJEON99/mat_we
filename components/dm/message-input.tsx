@@ -23,6 +23,7 @@ export function MessageInput({ conversationId, partnerId }: MessageInputProps) {
   const [activePanel, setActivePanel] = useState<ActivePanel>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const sendMessage = useSendDirectMessage();
   const floatingChat = useFloatingChat();
   const isExpanded = floatingChat?.isExpanded ?? false;
@@ -33,7 +34,12 @@ export function MessageInput({ conversationId, partnerId }: MessageInputProps) {
   // 메뉴 외부 클릭 감지
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(event.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target as Node)
+      ) {
         setShowMenu(false);
       }
     };
@@ -52,7 +58,7 @@ export function MessageInput({ conversationId, partnerId }: MessageInputProps) {
         onSuccess: () => {
           setContent("");
         },
-      }
+      },
     );
   }, [content, conversationId, sendMessage]);
 
@@ -114,7 +120,7 @@ export function MessageInput({ conversationId, partnerId }: MessageInputProps) {
   const panelPosition = cn(
     "fixed z-[60] bg-background border rounded-xl shadow-2xl overflow-hidden flex flex-col",
     "max-md:right-auto max-md:left-4 max-md:bottom-4 max-md:w-[calc(100%-2rem)] max-md:max-h-[60vh]",
-    isExpanded ? "md:right-[650px] md:bottom-6" : "md:right-[420px] md:bottom-24"
+    isExpanded ? "md:right-[650px] md:bottom-6" : "md:right-[420px] md:bottom-24",
   );
 
   return (
@@ -129,12 +135,7 @@ export function MessageInput({ conversationId, partnerId }: MessageInputProps) {
             </Button>
           </div>
           <div className="p-3 overflow-y-auto flex-1">
-            <PTScheduler
-              sessionId={conversationId}
-              onConfirm={handleScheduleConfirm}
-              onCancel={closePanel}
-              compact
-            />
+            <PTScheduler sessionId={conversationId} onConfirm={handleScheduleConfirm} onCancel={closePanel} compact />
           </div>
         </div>
       )}
@@ -149,11 +150,7 @@ export function MessageInput({ conversationId, partnerId }: MessageInputProps) {
             </Button>
           </div>
           <div className="p-3 overflow-y-auto flex-1">
-            <PTCalendar
-              selectedDate={selectedDate}
-              onSelectDate={setSelectedDate}
-              compact
-            />
+            <PTCalendar selectedDate={selectedDate} onSelectDate={setSelectedDate} compact />
             {selectedDate && (
               <div className="mt-3 p-3 bg-slate-50 rounded-lg">
                 <p className="text-sm text-slate-600">
@@ -193,8 +190,7 @@ export function MessageInput({ conversationId, partnerId }: MessageInputProps) {
       {showMenu && (
         <div
           ref={menuRef}
-          className="absolute bottom-full left-3 mb-2 bg-background border rounded-xl shadow-lg overflow-hidden min-w-[200px]"
-        >
+          className="absolute bottom-full left-3 mb-2 bg-background border rounded-xl shadow-lg overflow-hidden min-w-[200px]">
           {/* PT 일정 잡기 */}
           <button
             type="button"
@@ -202,8 +198,7 @@ export function MessageInput({ conversationId, partnerId }: MessageInputProps) {
               setActivePanel("scheduler");
               setShowMenu(false);
             }}
-            className="flex items-center gap-3 px-4 py-3 hover:bg-muted transition-colors w-full text-left"
-          >
+            className="flex items-center gap-3 px-4 py-3 hover:bg-muted transition-colors w-full text-left">
             <div className="p-2 bg-slate-100 rounded-lg">
               <Calendar className="h-4 w-4 text-slate-600" />
             </div>
@@ -220,8 +215,7 @@ export function MessageInput({ conversationId, partnerId }: MessageInputProps) {
               setActivePanel("calendar");
               setShowMenu(false);
             }}
-            className="flex items-center gap-3 px-4 py-3 hover:bg-muted transition-colors w-full text-left border-t"
-          >
+            className="flex items-center gap-3 px-4 py-3 hover:bg-muted transition-colors w-full text-left border-t">
             <div className="p-2 bg-emerald-100 rounded-lg">
               <CalendarCheck className="h-4 w-4 text-emerald-600" />
             </div>
@@ -239,8 +233,7 @@ export function MessageInput({ conversationId, partnerId }: MessageInputProps) {
                 setActivePanel("requests");
                 setShowMenu(false);
               }}
-              className="flex items-center gap-3 px-4 py-3 hover:bg-muted transition-colors w-full text-left border-t"
-            >
+              className="flex items-center gap-3 px-4 py-3 hover:bg-muted transition-colors w-full text-left border-t">
               <div className="p-2 bg-amber-100 rounded-lg">
                 <ClipboardList className="h-4 w-4 text-amber-600" />
               </div>
@@ -256,15 +249,12 @@ export function MessageInput({ conversationId, partnerId }: MessageInputProps) {
       {/* 입력 영역 */}
       <div className="flex items-end gap-2 p-3 border-t bg-background">
         <Button
+          ref={buttonRef}
           type="button"
           variant="ghost"
           size="icon"
-          className={cn(
-            "h-10 w-10 shrink-0 rounded-full transition-transform",
-            showMenu && "rotate-45"
-          )}
-          onClick={() => setShowMenu(!showMenu)}
-        >
+          className={cn("h-10 w-10 shrink-0 rounded-full transition-transform", showMenu && "rotate-45")}
+          onClick={() => setShowMenu(!showMenu)}>
           <Plus className="h-5 w-5" />
         </Button>
 
@@ -281,8 +271,7 @@ export function MessageInput({ conversationId, partnerId }: MessageInputProps) {
           onClick={handleSend}
           disabled={!content.trim() || sendMessage.isPending}
           size="icon"
-          className="h-10 w-10 shrink-0 rounded-full"
-        >
+          className="h-10 w-10 shrink-0 rounded-full">
           <Send className="h-4 w-4" />
         </Button>
       </div>
