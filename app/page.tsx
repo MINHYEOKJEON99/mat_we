@@ -25,8 +25,7 @@ export default async function HomePage() {
               </p>
               <Link
                 href="/courses"
-                className="inline-flex items-center gap-2 text-sm font-medium hover:gap-3 transition-all"
-              >
+                className="inline-flex items-center gap-2 text-sm font-medium hover:gap-3 transition-all">
                 강의 둘러보기
                 <ArrowRight className="h-4 w-4" />
               </Link>
@@ -58,8 +57,7 @@ export default async function HomePage() {
               </p>
               <Link
                 href="/community"
-                className="inline-flex items-center gap-2 text-sm font-medium hover:gap-3 transition-all"
-              >
+                className="inline-flex items-center gap-2 text-sm font-medium hover:gap-3 transition-all">
                 커뮤니티 바로가기
                 <ArrowRight className="h-4 w-4" />
               </Link>

@@ -65,11 +65,6 @@ export function FloatingChatProvider({ children }: { children: React.ReactNode }
     setPendingPartnerId(null);
   }, []);
 
-  // 로그인하지 않은 경우 채팅 UI 표시하지 않음
-  if (!profile) {
-    return <>{children}</>;
-  }
-
   return (
     <FloatingChatContext.Provider
       value={{
@@ -87,8 +82,8 @@ export function FloatingChatProvider({ children }: { children: React.ReactNode }
       }}
     >
       {children}
-      <FloatingChatButton />
-      <ChatPanel />
+      {profile && <FloatingChatButton />}
+      {profile && <ChatPanel />}
     </FloatingChatContext.Provider>
   );
 }

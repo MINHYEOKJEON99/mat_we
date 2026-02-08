@@ -1,11 +1,11 @@
-import type React from "react"
-import type { Metadata } from "next"
-import { Analytics } from "@vercel/analytics/next"
-import { ThemeProvider } from "@/components/providers/theme-provider"
-import { QueryProvider } from "@/components/providers/query-provider"
-import { FloatingChatProvider } from "@/components/dm"
-import { Header } from "@/components/layout/header"
-import "./globals.css"
+import type React from "react";
+import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
+import { ThemeProvider } from "@/components/providers/theme-provider";
+import { QueryProvider } from "@/components/providers/query-provider";
+import { FloatingChatProvider } from "@/components/dm";
+import { Header } from "@/components/layout/header";
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
@@ -57,12 +57,12 @@ export const metadata: Metadata = {
   icons: {
     icon: "/favicon.ico",
   },
-}
+};
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   return (
     <html lang="ko" suppressHydrationWarning>
@@ -72,8 +72,7 @@ export default function RootLayout({
             <FloatingChatProvider>
               <a
                 href="#main-content"
-                className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md"
-              >
+                className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md">
                 본문으로 건너뛰기
               </a>
               <div className="min-h-screen flex flex-col">
@@ -88,5 +87,5 @@ export default function RootLayout({
         <Analytics />
       </body>
     </html>
-  )
+  );
 }
