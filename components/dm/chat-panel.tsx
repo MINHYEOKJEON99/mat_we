@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { X, ArrowLeft, Maximize2, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -86,14 +86,34 @@ export function ChatPanel() {
   // 현재 활성 대화의 파트너 정보
   const activeConversation = conversations.find((c) => c.id === activeConversationId);
 
-  if (!isOpen) return null;
+  // 닫힐 때 애니메이션이 끝난 뒤 언마운트하기 위한 상태
+  const [mounted, setMounted] = useState(false);
+  const [animating, setAnimating] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setMounted(true);
+      // 다음 프레임에서 애니메이션 시작 (mount 후 transition 적용)
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => setAnimating(true));
+      });
+    } else {
+      setAnimating(false);
+      const timer = setTimeout(() => setMounted(false), 250);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
+
+  if (!mounted) return null;
 
   return (
     <div
       className={cn(
         "fixed z-50 bg-background border rounded-lg shadow-xl overflow-hidden",
         "flex flex-col",
-        "transition-all duration-200 ease-out",
+        "transition-all duration-250 ease-out",
+        // 애니메이션 상태
+        animating ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-95 translate-y-4",
         // 기본 크기 (축소 상태)
         !isExpanded && "md:bottom-24 md:right-6 md:w-[380px] md:h-[550px]",
         // 확대 상태 (더 큰 크기)

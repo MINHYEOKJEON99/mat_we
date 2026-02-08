@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect, type KeyboardEvent } from "react";
-import { Send, Plus, Calendar, X, CalendarCheck, ClipboardList } from "lucide-react";
+import { useState, useCallback, useRef, useEffect, useMemo, type KeyboardEvent } from "react";
+import { Send, Plus, Calendar, X, CalendarCheck, ClipboardList, Clock, MapPin, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useSendDirectMessage } from "@/hooks/use-direct-messages";
+import { useSendDirectMessage, useMessages } from "@/hooks/use-direct-messages";
+import { useInstructorPTSessions, useStudentPTSessions } from "@/hooks/use-pt-sessions";
 import { useFloatingChat } from "./floating-chat-provider";
 import { useCurrentProfile } from "@/hooks";
 import { PTScheduler, PTCalendar } from "@/components/pt";
 import { cn } from "@/lib/utils";
+import type { PTRequestMetadata, PTScheduleMetadata } from "@/lib/database";
 
 interface MessageInputProps {
   conversationId: string;
@@ -30,6 +32,22 @@ export function MessageInput({ conversationId, partnerId }: MessageInputProps) {
   const { data: profile } = useCurrentProfile();
 
   const isInstructor = profile?.role === "instructor";
+
+  // PT 데이터 조회
+  const { data: messages = [] } = useMessages(conversationId);
+  const { data: instructorSessions } = useInstructorPTSessions(isInstructor ? profile?.id : undefined);
+  const { data: studentSessions } = useStudentPTSessions(!isInstructor ? profile?.id : undefined);
+
+  // 이 대화 상대와의 PT 세션 (캘린더용)
+  const partnerPTSessions = useMemo(() => {
+    const sessions = instructorSessions || studentSessions || [];
+    return sessions.filter((s) => (isInstructor ? s.student_id === partnerId : s.instructor_id === partnerId));
+  }, [instructorSessions, studentSessions, isInstructor, partnerId]);
+
+  // DM에서 PT 일정 확정 메시지
+  const scheduleMessages = useMemo(() => {
+    return messages.filter((m) => m.type === "pt_schedule" && m.metadata);
+  }, [messages]);
 
   // 메뉴 외부 클릭 감지
   useEffect(() => {
@@ -150,38 +168,43 @@ export function MessageInput({ conversationId, partnerId }: MessageInputProps) {
             </Button>
           </div>
           <div className="p-3 overflow-y-auto flex-1">
-            <PTCalendar selectedDate={selectedDate} onSelectDate={setSelectedDate} compact />
-            {selectedDate && (
-              <div className="mt-3 p-3 bg-slate-50 rounded-lg">
-                <p className="text-sm text-slate-600">
-                  {selectedDate.toLocaleDateString("ko-KR", {
-                    month: "long",
-                    day: "numeric",
-                    weekday: "short",
-                  })}
-                </p>
-                <p className="text-xs text-slate-400 mt-1">등록된 PT 일정이 없습니다</p>
+            {/* DM으로 확정된 PT 일정 목록 */}
+            {scheduleMessages.length > 0 && (
+              <div className="mt-4 space-y-2">
+                <h4 className="text-xs font-medium text-slate-500">확정된 일정</h4>
+                {scheduleMessages.map((msg) => {
+                  const meta = msg.metadata as PTScheduleMetadata;
+                  return (
+                    <div key={msg.id} className="p-3 bg-emerald-50/50 rounded-lg border border-emerald-100">
+                      <div className="flex items-center gap-2 text-sm font-medium text-emerald-800">
+                        <Calendar className="h-3.5 w-3.5" />
+                        <span>{meta.date}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-emerald-700 mt-1">
+                        <Clock className="h-3 w-3" />
+                        <span>
+                          {meta.startTime} ~ {meta.endTime}
+                        </span>
+                      </div>
+                      {meta.location && (
+                        <div className="flex items-center gap-2 text-xs text-emerald-700 mt-1">
+                          <MapPin className="h-3 w-3" />
+                          <span className="truncate">{meta.location}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
-          </div>
-        </div>
-      )}
 
-      {/* PT 요청 확인 패널 (강사 전용) */}
-      {activePanel === "requests" && isInstructor && (
-        <div className={cn(panelPosition, "w-[320px] max-h-[400px]")}>
-          <div className="flex items-center justify-between px-4 py-3 border-b bg-slate-700">
-            <h3 className="font-semibold text-sm text-white">PT 요청 확인</h3>
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-white hover:bg-slate-600" onClick={closePanel}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className="p-4 overflow-y-auto flex-1">
-            <div className="text-center py-8">
-              <ClipboardList className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-              <p className="text-sm text-slate-500">대기 중인 PT 요청이 없습니다</p>
-              <p className="text-xs text-slate-400 mt-1">새로운 요청이 오면 여기에 표시됩니다</p>
-            </div>
+            {/* 데이터 없음 상태 */}
+            {!selectedDate && scheduleMessages.length === 0 && partnerPTSessions.length === 0 && (
+              <div className="mt-3 text-center py-4">
+                <CalendarCheck className="h-10 w-10 text-slate-200 mx-auto mb-2" />
+                <p className="text-xs text-slate-400">아직 확정된 PT 일정이 없습니다</p>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -224,25 +247,6 @@ export function MessageInput({ conversationId, partnerId }: MessageInputProps) {
               <p className="text-xs text-muted-foreground">예정된 PT 일정 보기</p>
             </div>
           </button>
-
-          {/* PT 요청 확인하기 (강사 전용) */}
-          {isInstructor && (
-            <button
-              type="button"
-              onClick={() => {
-                setActivePanel("requests");
-                setShowMenu(false);
-              }}
-              className="flex items-center gap-3 px-4 py-3 hover:bg-muted transition-colors w-full text-left border-t">
-              <div className="p-2 bg-amber-100 rounded-lg">
-                <ClipboardList className="h-4 w-4 text-amber-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium">PT 요청 확인</p>
-                <p className="text-xs text-muted-foreground">대기 중인 요청 관리</p>
-              </div>
-            </button>
-          )}
         </div>
       )}
 
