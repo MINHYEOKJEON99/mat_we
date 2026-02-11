@@ -2,15 +2,17 @@
 
 import { createClient } from "@/lib/client";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -18,7 +20,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import type { Provider } from "@supabase/supabase-js";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff, Mail } from "lucide-react";
 
 const loginSchema = z.object({
   email: z.string().email("올바른 이메일 형식이 아닙니다"),
@@ -63,6 +65,11 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<Provider | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [showResendModal, setShowResendModal] = useState(false);
+  const [resendEmail, setResendEmail] = useState("");
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
+  const [resendError, setResendError] = useState<string | null>(null);
   const router = useRouter();
 
   const {
@@ -112,13 +119,138 @@ export default function LoginPage() {
     }
   };
 
+  const handleResendVerification = async () => {
+    if (!resendEmail) {
+      setResendError("이메일을 입력해주세요");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(resendEmail)) {
+      setResendError("올바른 이메일 형식이 아닙니다");
+      return;
+    }
+
+    const supabase = createClient();
+    setResendLoading(true);
+    setResendError(null);
+
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: resendEmail,
+      });
+
+      if (error) {
+        console.error("Resend verification error:", error);
+        const message = error.message.toLowerCase();
+
+        if (message.includes("rate limit") || message.includes("too many")) {
+          setResendError("요청이 너무 많습니다. 잠시 후 다시 시도해주세요");
+        } else if (message.includes("not found") || message.includes("user not found")) {
+          setResendError("등록되지 않은 이메일입니다. 회원가입을 먼저 진행해주세요");
+        } else if (message.includes("already confirmed") || message.includes("already registered")) {
+          setResendError("이미 인증이 완료된 이메일입니다. 로그인을 시도해주세요");
+        } else {
+          // 보안상 구체적인 에러를 노출하지 않음
+          setResendSuccess(true);
+        }
+        return;
+      }
+
+      setResendSuccess(true);
+    } catch (err) {
+      console.error("Resend verification unexpected error:", err);
+      setResendError("인증 메일 발송 중 오류가 발생했습니다");
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
+  const handleCloseResendModal = () => {
+    setShowResendModal(false);
+    setResendEmail("");
+    setResendError(null);
+    setResendSuccess(false);
+  };
+
   return (
-    <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
-      <div className="w-full max-w-sm">
-        <div className="flex flex-col gap-6">
-          <Card>
+    <>
+      {/* 인증 메일 다시 받기 모달 */}
+      <Dialog open={showResendModal} onOpenChange={handleCloseResendModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5 text-primary" />
+              인증 메일 다시 받기
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              {resendSuccess
+                ? "해당 이메일로 가입된 계정이 있고 아직 인증이 완료되지 않았다면 인증 메일이 발송됩니다. 이메일을 확인해주세요."
+                : "회원가입 시 사용한 이메일을 입력하면 인증 메일을 다시 보내드립니다."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {!resendSuccess ? (
+            <>
+              <div className="grid gap-2 py-4">
+                <Label htmlFor="resend-email">이메일</Label>
+                <Input
+                  id="resend-email"
+                  type="email"
+                  placeholder="email@example.com"
+                  value={resendEmail}
+                  onChange={(e) => setResendEmail(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleResendVerification();
+                    }
+                  }}
+                />
+                {resendError && (
+                  <p className="text-sm text-red-500">{resendError}</p>
+                )}
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={handleCloseResendModal}
+                  disabled={resendLoading}
+                >
+                  취소
+                </Button>
+                <Button
+                  onClick={handleResendVerification}
+                  disabled={resendLoading}
+                >
+                  {resendLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      발송 중...
+                    </>
+                  ) : (
+                    "인증 메일 발송"
+                  )}
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <DialogFooter>
+              <Button onClick={handleCloseResendModal}>확인</Button>
+            </DialogFooter>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
+        <div className="w-full max-w-sm">
+          <div className="flex flex-col gap-6">
+            <Card>
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl">Mat We</CardTitle>
+              <CardTitle className="text-2xl font-bold tracking-tight" style={{ fontFamily: '"DM Serif Text", serif' }}>
+                Mat We
+              </CardTitle>
               <CardDescription>주짓수 커뮤니티에 로그인하세요</CardDescription>
             </CardHeader>
             <CardContent>
@@ -131,14 +263,8 @@ export default function LoginPage() {
                   onClick={() => handleSocialLogin("google")}
                   disabled={socialLoading !== null}
                 >
-                  {socialLoading === "google" ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <GoogleIcon />
-                  )}
-                  {socialLoading === "google"
-                    ? "로그인 중..."
-                    : "Google로 계속하기"}
+                  {socialLoading === "google" ? <Loader2 className="h-5 w-5 animate-spin" /> : <GoogleIcon />}
+                  {socialLoading === "google" ? "로그인 중..." : "Google로 계속하기"}
                 </Button>
                 {/* TODO: Kakao 로그인 - Supabase 설정 후 활성화
                 <Button
@@ -172,9 +298,7 @@ export default function LoginPage() {
                   <span className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">
-                    또는
-                  </span>
+                  <span className="bg-background px-2 text-muted-foreground">또는</span>
                 </div>
               </div>
 
@@ -183,26 +307,13 @@ export default function LoginPage() {
                 <div className="flex flex-col gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="email">이메일</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="email@example.com"
-                      {...register("email")}
-                    />
-                    {errors.email && (
-                      <p className="text-sm text-red-500">
-                        {errors.email.message}
-                      </p>
-                    )}
+                    <Input id="email" type="email" placeholder="email@example.com" {...register("email")} />
+                    {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="password">비밀번호</Label>
                     <div className="relative">
-                      <Input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        {...register("password")}
-                      />
+                      <Input id="password" type={showPassword ? "text" : "password"} {...register("password")} />
                       <Button
                         type="button"
                         variant="ghost"
@@ -217,11 +328,7 @@ export default function LoginPage() {
                         )}
                       </Button>
                     </div>
-                    {errors.password && (
-                      <p className="text-sm text-red-500">
-                        {errors.password.message}
-                      </p>
-                    )}
+                    {errors.password && <p className="text-sm text-red-500">{errors.password.message}</p>}
                   </div>
                   {error && <p className="text-sm text-red-500">{error}</p>}
                   <Button type="submit" className="w-full" disabled={isLoading}>
@@ -237,19 +344,26 @@ export default function LoginPage() {
                 </div>
                 <div className="mt-4 text-center text-sm">
                   계정이 없으신가요?{" "}
-                  <Link
-                    href="/auth/signup"
-                    className="underline underline-offset-4"
-                  >
+                  <Link href="/auth/signup" className="underline underline-offset-4">
                     회원가입
                   </Link>
                 </div>
+                <div className="mt-2 text-center text-sm">
+                  <button
+                    type="button"
+                    onClick={() => setShowResendModal(true)}
+                    className="text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
+                  >
+                    인증 메일 다시 받기
+                  </button>
+                </div>
               </form>
             </CardContent>
-          </Card>
+            </Card>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 

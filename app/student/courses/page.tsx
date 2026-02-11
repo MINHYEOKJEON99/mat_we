@@ -1,50 +1,14 @@
 import Image from "next/image"
-import { createClient } from "@/lib/server"
-import { redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
+import { requireAuth, getEnrollmentsByStudent } from "@/lib/api/server"
 
 export default async function StudentCoursesPage() {
-  const supabase = await createClient()
+  const user = await requireAuth()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect("/auth/login")
-  }
-
-  // Get enrolled courses (optimized fields)
-  const { data: enrollments } = await supabase
-    .from("enrollments")
-    .select(`
-      id,
-      enrolled_at,
-      course:courses (
-        id,
-        title,
-        description,
-        thumbnail_url,
-        instructor:profiles!courses_instructor_id_fkey (
-          id,
-          display_name
-        )
-      )
-    `)
-    .eq("student_id", user.id)
-    .order("enrolled_at", { ascending: false }) as { data: Array<{
-      id: string
-      enrolled_at: string
-      course: {
-        id: string
-        title: string
-        description: string | null
-        thumbnail_url: string | null
-        instructor: { id: string; display_name: string } | null
-      } | null
-    }> | null }
+  // Get enrolled courses
+  const enrollments = await getEnrollmentsByStudent(user.id)
 
   return (
     <div className="min-h-screen bg-background">

@@ -1,30 +1,19 @@
-import { createClient } from "@/lib/server"
 import { redirect, notFound } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-import { ChatInterface } from "@/components/chat-interface"
-import { SessionActions } from "@/components/session-actions"
+import { ChatInterface } from "@/components/chat/chat-interface"
+import { SessionActions } from "@/components/pt/session-actions"
+import { requireAuth, getPTSessionById } from "@/lib/api/server"
 
 export default async function ChatPage({ params }: { params: Promise<{ sessionId: string }> }) {
   const { sessionId } = await params
-  const supabase = await createClient()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect("/auth/login")
-  }
+  const user = await requireAuth()
 
   // Get PT session details
-  const { data: session } = await supabase
-    .from("pt_sessions")
-    .select("*, instructor:profiles!pt_sessions_instructor_id_fkey(*), student:profiles!pt_sessions_student_id_fkey(*)")
-    .eq("id", sessionId)
-    .single()
+  const session = await getPTSessionById(sessionId)
 
   if (!session) {
     notFound()

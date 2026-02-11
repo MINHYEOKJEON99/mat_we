@@ -1,37 +1,22 @@
-import { redirect } from "next/navigation"
 import Link from "next/link"
-import { createClient } from "@/lib/server"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Pencil, MessageSquare, Eye, ThumbsUp } from "lucide-react"
-import type { Profile, CommunityPost } from "@/lib/database"
+import { Pencil, MessageSquare, ThumbsUp } from "lucide-react"
+import type { CommunityPost } from "@/lib/database"
+import { requireAuth, getPostsByAuthor, getProfileById } from "@/lib/api/server"
+import { RichViewer } from "@/components/editor/rich-viewer"
 
 export default async function MypagePage() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect("/auth/login")
-  }
+  const user = await requireAuth()
 
   // 프로필 정보 가져오기
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single<Profile>()
+  const profile = await getProfileById(user.id)
 
   // 작성한 게시글 가져오기 (최근 5개)
-  const { data: posts } = await supabase
-    .from("community_posts")
-    .select("*")
-    .eq("author_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(5)
+  const allPosts = await getPostsByAuthor(user.id)
+  const posts = allPosts.slice(0, 5)
 
   // 수강평 개수 (추후 구현 시 실제 데이터로 대체)
   const reviewCount = 0
@@ -127,9 +112,9 @@ export default async function MypagePage() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="space-y-1 flex-1 min-w-0">
                       <h3 className="font-medium truncate">{post.title}</h3>
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {post.content}
-                      </p>
+                      <div className="text-sm text-muted-foreground line-clamp-2 [&_.ProseMirror]:p-0 [&_.ProseMirror]:min-h-0">
+                        <RichViewer content={post.content} className="!prose-sm" />
+                      </div>
                     </div>
                     <span className="text-xs text-muted-foreground shrink-0">
                       {new Date(post.created_at).toLocaleDateString("ko-KR")}

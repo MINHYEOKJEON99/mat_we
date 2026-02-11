@@ -1,42 +1,72 @@
-import { HeroCarousel } from "@/components/hero-carousel"
-import { AmbassadorsSection } from "@/components/ambassadors-section"
-import { FeaturedCourses } from "@/components/featured-courses"
-import { StatsSection } from "@/components/stats-section"
-import { Footer } from "@/components/footer"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
+import { FeaturedCourses } from "@/components/course/featured-courses";
+import { FeaturedInstructors } from "@/components/landing/featured-instructors";
+import { Footer } from "@/components/layout/footer";
+import { FadeInSection } from "@/components/ui/fade-in-section";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 
 export default async function HomePage() {
   return (
     <>
-      <HeroCarousel />
-      <StatsSection />
-      <AmbassadorsSection />
-      <FeaturedCourses />
+      <main className="flex flex-col items-center overflow-x-hidden">
+        {/* Hero Section - Service Introduction */}
+        <section className="w-full max-w-[1024px] px-6 py-24 md:py-32">
+          <FadeInSection>
+            <div className="space-y-8 text-center">
+              <h1 className="text-4xl md:text-6xl font-bold tracking-tight leading-tight">
+                매트 위에서 시작되는
+                <br />
+                <span className="text-muted-foreground">당신의 성장</span>
+              </h1>
+              <p className="text-lg md:text-xl text-muted-foreground max-w-[600px] mx-auto leading-relaxed">
+                주짓수, 유도, 레슬링, 삼보까지.
+                <br />
+                모든 매트 스포츠를 위한 강의 플랫폼.
+              </p>
+              <Link
+                href="/courses"
+                className="inline-flex items-center gap-2 text-sm font-medium hover:gap-3 transition-all">
+                강의 둘러보기
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </FadeInSection>
+        </section>
 
-      {/* CTA Section */}
-      <section className="py-24 bg-muted/30">
-        <div className="container mx-auto px-4 max-w-4xl text-center space-y-8">
-          <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-balance">
-            지금 Mat We와 함께 시작하세요
-          </h2>
-          <p className="text-xl text-muted-foreground text-pretty">
-            전문 강사진의 체계적인 커리큘럼과 1:1 맞춤 PT로
-            <br className="hidden md:block" />
-            당신의 주짓수 실력을 한 단계 끌어올리세요
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" className="text-lg px-8 py-6 h-auto">
-              <Link href="/auth/signup">무료로 시작하기</Link>
-            </Button>
-            <Button asChild size="lg" variant="outline" className="text-lg px-8 py-6 h-auto bg-transparent">
-              <Link href="/courses">강의 둘러보기</Link>
-            </Button>
-          </div>
-        </div>
-      </section>
+        {/* Instructors Section */}
+        <section className="w-full max-w-[1024px] px-6 py-8">
+          <FadeInSection delay={100}>
+            <FeaturedInstructors />
+          </FadeInSection>
+        </section>
+
+        {/* Courses Section */}
+        <section className="w-full max-w-[1024px] px-6 py-8">
+          <FadeInSection delay={100}>
+            <FeaturedCourses />
+          </FadeInSection>
+        </section>
+
+        {/* Community Section */}
+        <section className="w-full max-w-[1024px] px-6 py-16">
+          <FadeInSection delay={100}>
+            <div className="space-y-6">
+              <h2 className="text-2xl md:text-3xl font-heading tracking-wide">COMMUNITY</h2>
+              <p className="text-[13px] text-muted-foreground max-w-[500px]">
+                전국의 주짓수 수련자들과 경험을 나누고, 함께 성장하세요.
+              </p>
+              <Link
+                href="/community"
+                className="inline-flex items-center gap-2 text-sm font-medium hover:gap-3 transition-all">
+                커뮤니티 바로가기
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </FadeInSection>
+        </section>
+      </main>
 
       <Footer />
     </>
-  )
+  );
 }

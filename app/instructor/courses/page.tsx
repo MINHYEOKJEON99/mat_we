@@ -4,30 +4,32 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { PlusCircle } from "lucide-react"
+import { requireAuth, getProfileById, getCoursesByInstructor } from "@/lib/api/server"
 
 export default async function InstructorCoursesPage() {
   const supabase = await createClient()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await requireAuth()
 
-  if (!user) {
-    redirect("/auth/login")
-  }
-
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single()
+  const profile = await getProfileById(user.id)
 
   if (!profile || profile.role !== "instructor") {
     redirect("/dashboard")
   }
 
   // Get instructor's courses
-  const { data: courses } = await supabase
-    .from("courses")
-    .select("*, course_videos(count)")
-    .eq("instructor_id", user.id)
-    .order("created_at", { ascending: false })
+  const courses = await getCoursesByInstructor(user.id)
+
+  // Get video counts for each course
+  const coursesWithVideoCounts = await Promise.all(
+    courses.map(async (course) => {
+      const { count } = await supabase
+        .from("course_videos")
+        .select("*", { count: "exact", head: true })
+        .eq("course_id", course.id)
+      return { ...course, course_videos: [{ count: count || 0 }] }
+    })
+  )
 
   return (
     <div className="min-h-screen bg-background">
@@ -72,7 +74,7 @@ export default async function InstructorCoursesPage() {
           </Button>
         </div>
 
-        {!courses || courses.length === 0 ? (
+        {!coursesWithVideoCounts || coursesWithVideoCounts.length === 0 ? (
           <Card>
             <CardHeader>
               <CardTitle>아직 강의가 없습니다</CardTitle>
@@ -86,7 +88,7 @@ export default async function InstructorCoursesPage() {
           </Card>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {courses.map((course) => (
+            {coursesWithVideoCounts.map((course) => (
               <Card key={course.id} className="flex flex-col">
                 <CardHeader>
                   {course.thumbnail_url && (

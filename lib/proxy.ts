@@ -1,9 +1,16 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isMiddlewareProfileComplete } from "@/lib/api/middleware";
 
 export async function updateSession(request: NextRequest) {
+  // Add pathname to request headers for server components
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-pathname", request.nextUrl.pathname);
+
   let supabaseResponse = NextResponse.next({
-    request,
+    request: {
+      headers: requestHeaders,
+    },
   });
 
   const supabase = createServerClient(
@@ -17,9 +24,13 @@ export async function updateSession(request: NextRequest) {
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           supabaseResponse = NextResponse.next({
-            request,
+            request: {
+              headers: requestHeaders,
+            },
           });
-          cookiesToSet.forEach(({ name, value, options }) => supabaseResponse.cookies.set(name, value, options));
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          );
         },
       },
     }
@@ -30,9 +41,17 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
+  console.log("[Middleware] Processing request:", pathname, "- User:", user ? user.email : "Not logged in");
 
   // 인증이 필요한 라우트 목록
-  const protectedRoutes = ["/dashboard", "/instructor", "/student", "/chat", "/community/new"];
+  const protectedRoutes = [
+    "/dashboard",
+    "/mypage",
+    "/instructor",
+    "/student",
+    "/chat",
+    "/community/new",
+  ];
   const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route));
 
   // 프로필 완성 체크가 필요 없는 인증 관련 라우트
@@ -43,22 +62,26 @@ export async function updateSession(request: NextRequest) {
     "/auth/complete-profile",
     "/auth/error",
     "/auth/signup-success",
+    "/auth/logout",
   ];
   const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
 
   // 비로그인 상태로 보호된 라우트 접근 시 → 로그인 페이지로 리다이렉트
   if (isProtectedRoute && !user) {
+    console.log("[Middleware] Blocking access to protected route:", pathname, "- User not logged in");
     const url = request.nextUrl.clone();
     url.pathname = "/auth/login";
+    url.searchParams.set("redirectTo", pathname);
     return NextResponse.redirect(url);
   }
 
   // 로그인 상태 + 인증 라우트 아님 → 프로필 완성 여부 체크
   if (user && !isAuthRoute) {
-    const { data: profile } = await supabase.from("profiles").select("is_profile_complete").eq("id", user.id).single();
+    // Use centralized middleware API for profile check
+    const profileComplete = await isMiddlewareProfileComplete(supabase, user.id);
 
     // 프로필이 없거나 미완성이면 → 프로필 완성 페이지로 리다이렉트
-    if (!profile || !profile.is_profile_complete) {
+    if (!profileComplete) {
       const url = request.nextUrl.clone();
       url.pathname = "/auth/complete-profile";
       return NextResponse.redirect(url);
@@ -66,15 +89,17 @@ export async function updateSession(request: NextRequest) {
   }
 
   // 로그인 상태에서 로그인/회원가입 페이지 접근 시 → 루트 페이지로 리다이렉트
-  if (user && (pathname === "/auth/login" || pathname === "/auth/signup")) {
-    const { data: profile } = await supabase.from("profiles").select("is_profile_complete").eq("id", user.id).single();
-
-    if (profile?.is_profile_complete) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/";
-      return NextResponse.redirect(url);
-    }
-  }
+  // 주석 처리: 로그인 상태 불일치 문제로 인해 접근 차단하지 않음
+  // if (user && (pathname === "/auth/login" || pathname === "/auth/signup")) {
+  //   const { data: profile } = await supabase.from("profiles").select("is_profile_complete").eq("id", user.id).single();
+  //
+  //   if (profile?.is_profile_complete) {
+  //     console.log("[Middleware] Logged-in user accessing auth pages, redirecting to home");
+  //     const url = request.nextUrl.clone();
+  //     url.pathname = "/";
+  //     return NextResponse.redirect(url);
+  //   }
+  // }
 
   return supabaseResponse;
 }

@@ -8,13 +8,21 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { useRouter } from "next/navigation"
 import { useState, useEffect, useRef } from "react"
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { SPORT_LABELS, AVAILABLE_SPORTS, type SportType, type UserRole } from "@/lib/database"
-import { Camera } from "lucide-react"
+import { Camera, Info } from "lucide-react"
 
 const completeProfileSchema = z.object({
   displayName: z.string().min(2, "닉네임은 최소 2자 이상이어야 합니다").max(20, "닉네임은 20자를 초과할 수 없습니다"),
@@ -33,6 +41,7 @@ export default function CompleteProfilePage() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [userEmail, setUserEmail] = useState<string>("")
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+  const [showInstructorModal, setShowInstructorModal] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
@@ -127,6 +136,10 @@ export default function CompleteProfilePage() {
     setIsLoading(true)
     setError(null)
 
+    // 강사로 선택했어도 일단 수강생으로 저장
+    const isRequestingInstructor = data.role === "instructor"
+    const actualRole = isRequestingInstructor ? "student" : data.role
+
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error("인증 정보를 찾을 수 없습니다")
@@ -134,14 +147,14 @@ export default function CompleteProfilePage() {
       // Upload avatar if changed
       const finalAvatarUrl = await uploadAvatar(user.id)
 
-      // Update profile
+      // Update profile (강사 선택 시 일단 수강생으로 저장)
       const { error: profileError } = await supabase
         .from("profiles")
         .upsert({
           id: user.id,
           email: user.email,
           display_name: data.displayName,
-          role: data.role as UserRole,
+          role: actualRole as UserRole, // 항상 수강생으로 저장
           avatar_url: finalAvatarUrl,
           interested_sports: data.interestedSports as SportType[],
           is_profile_complete: true,
@@ -150,13 +163,43 @@ export default function CompleteProfilePage() {
 
       if (profileError) throw profileError
 
-      router.push("/")
-      router.refresh()
+      // 강사로 신청한 경우 instructor_applications에 추가
+      if (isRequestingInstructor) {
+        // 이미 신청이 있는지 확인
+        const { data: existingApp } = await supabase
+          .from("instructor_applications")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("status", "pending")
+          .single()
+
+        if (!existingApp) {
+          await supabase
+            .from("instructor_applications")
+            .insert({
+              user_id: user.id,
+              from_role: "student",
+              to_role: "instructor",
+              status: "pending",
+            })
+        }
+
+        setShowInstructorModal(true)
+      } else {
+        router.push("/")
+        router.refresh()
+      }
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "프로필 완성 중 오류가 발생했습니다")
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleInstructorModalClose = () => {
+    setShowInstructorModal(false)
+    router.push("/")
+    router.refresh()
   }
 
   if (isCheckingAuth) {
@@ -168,11 +211,42 @@ export default function CompleteProfilePage() {
   }
 
   return (
-    <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
-      <div className="w-full max-w-md">
-        <Card>
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl">프로필 완성</CardTitle>
+    <>
+      {/* 강사 신청 안내 모달 */}
+      <Dialog open={showInstructorModal} onOpenChange={setShowInstructorModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Info className="h-5 w-5 text-blue-500" />
+              강사 신청 안내
+            </DialogTitle>
+            <DialogDescription className="pt-4 text-left space-y-3">
+              <p>
+                프로필 설정이 완료되었습니다.
+              </p>
+              <p>
+                강사 신청은 <strong>관리자 승인 후</strong> 처리됩니다.
+                승인이 완료되면 강사로 전환되어 강의 등록 및 PT 제공이 가능합니다.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                승인까지 1~2일 정도 소요될 수 있습니다.
+                그동안 수강생으로 서비스를 이용하실 수 있습니다.
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={handleInstructorModalClose}>
+              확인
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
+        <div className="w-full max-w-md">
+          <Card>
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl">프로필 완성</CardTitle>
             <CardDescription>
               Mat We에 오신 것을 환영합니다!
               <br />
@@ -337,5 +411,6 @@ export default function CompleteProfilePage() {
         </Card>
       </div>
     </div>
+    </>
   )
 }

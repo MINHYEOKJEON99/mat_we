@@ -1,0 +1,109 @@
+"use client"
+
+import type React from "react"
+
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { addCourseVideo, getNextVideoOrderIndex } from "@/lib/api/client"
+
+interface AddVideoFormProps {
+  courseId: string
+}
+
+export function AddVideoForm({ courseId }: AddVideoFormProps) {
+  const [title, setTitle] = useState("")
+  const [description, setDescription] = useState("")
+  const [videoUrl, setVideoUrl] = useState("")
+  const [duration, setDuration] = useState("")
+  const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      // Get the next order index
+      const nextOrderIndex = await getNextVideoOrderIndex(courseId)
+
+      await addCourseVideo({
+        course_id: courseId,
+        title,
+        description: description || null,
+        video_url: videoUrl || null,
+        duration: duration ? Number.parseInt(duration) : null,
+        order_index: nextOrderIndex,
+      })
+
+      // Reset form
+      setTitle("")
+      setDescription("")
+      setVideoUrl("")
+      setDuration("")
+      router.refresh()
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : "영상 추가 중 오류가 발생했습니다")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="video-title">영상 제목 *</Label>
+        <Input
+          id="video-title"
+          placeholder="예: 기본 가드 자세"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="video-description">영상 설명</Label>
+        <Textarea
+          id="video-description"
+          placeholder="영상 내용을 간단히 설명하세요"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={3}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="video-url">영상 URL</Label>
+        <Input
+          id="video-url"
+          placeholder="예: https://example.com/video.mp4"
+          value={videoUrl}
+          onChange={(e) => setVideoUrl(e.target.value)}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="duration">재생시간 (초)</Label>
+        <Input
+          id="duration"
+          type="number"
+          placeholder="예: 300"
+          value={duration}
+          onChange={(e) => setDuration(e.target.value)}
+        />
+      </div>
+
+      {error && <p className="text-sm text-red-500">{error}</p>}
+
+      <Button type="submit" className="w-full" disabled={isLoading}>
+        {isLoading ? "추가 중..." : "영상 추가"}
+      </Button>
+    </form>
+  )
+}

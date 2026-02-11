@@ -1,117 +1,151 @@
-import Image from "next/image";
-import { createClient } from "@/lib/server";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
+import { getAllCourses, getCurrentUser, getEnrolledCourseIds, getAllCategories } from "@/lib/api/server";
+import { CoursesList } from "@/components/course/courses-list";
+import { FadeInSection } from "@/components/ui/fade-in-section";
+import type { CourseWithDetails } from "@/lib/api/server/courses";
+import type { Category } from "@/lib/database";
+
+// 더미 강의 데이터
+const DUMMY_COURSES: CourseWithDetails[] = [
+  {
+    id: "dummy-1",
+    instructor_id: "dummy-instructor-1",
+    title: "주짓수 기초 마스터 클래스: 화이트벨트를 위한 완벽 가이드",
+    description:
+      "주짓수를 처음 시작하는 분들을 위한 체계적인 기초 강의입니다. 기본 자세부터 필수 테크닉까지 단계별로 배워보세요.",
+    thumbnail_url: "https://images.unsplash.com/photo-1555597673-b21d5c935865?w=800&h=450&fit=crop",
+    price: 89000,
+    level: "beginner",
+    average_rating: 4.7,
+    review_count: 183,
+    student_count: 1250,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    instructor: {
+      id: "dummy-instructor-1",
+      email: "instructor@example.com",
+      display_name: "김주짓",
+      bio: "10년 경력의 블랙벨트 강사",
+      role: "instructor",
+      avatar_url: null,
+      interested_sports: ["jiujitsu"],
+      is_profile_complete: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    categories: [
+      {
+        id: "cat-1",
+        name: "jiujitsu",
+        name_ko: "주짓수",
+        slug: "jiujitsu",
+        description: null,
+        parent_id: null,
+        level: 1,
+        sort_order: 1,
+        icon: null,
+        created_at: new Date().toISOString(),
+      },
+    ],
+  },
+];
+
+// 더미 카테고리 데이터
+const DUMMY_CATEGORIES: Category[] = [
+  {
+    id: "cat-1",
+    name: "jiujitsu",
+    name_ko: "주짓수",
+    slug: "jiujitsu",
+    description: null,
+    parent_id: null,
+    level: 1,
+    sort_order: 1,
+    icon: null,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "cat-2",
+    name: "wrestling",
+    name_ko: "레슬링",
+    slug: "wrestling",
+    description: null,
+    parent_id: null,
+    level: 1,
+    sort_order: 2,
+    icon: null,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "cat-3",
+    name: "judo",
+    name_ko: "유도",
+    slug: "judo",
+    description: null,
+    parent_id: null,
+    level: 1,
+    sort_order: 3,
+    icon: null,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "cat-guard",
+    name: "guard",
+    name_ko: "가드",
+    slug: "jiujitsu-guard",
+    description: null,
+    parent_id: "cat-1",
+    level: 2,
+    sort_order: 1,
+    icon: null,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "cat-top",
+    name: "top",
+    name_ko: "탑",
+    slug: "jiujitsu-top",
+    description: null,
+    parent_id: "cat-1",
+    level: 2,
+    sort_order: 2,
+    icon: null,
+    created_at: new Date().toISOString(),
+  },
+];
 
 export default async function CoursesPage() {
-  const supabase = await createClient();
-
-  // Get all courses with instructor info (optimized fields)
-  const { data: courses } = await supabase
-    .from("courses")
-    .select(`
-      id,
-      title,
-      description,
-      thumbnail_url,
-      price,
-      level,
-      created_at,
-      instructor:profiles!courses_instructor_id_fkey (
-        id,
-        display_name
-      )
-    `)
-    .order("created_at", { ascending: false }) as { data: Array<{
-      id: string
-      title: string
-      description: string | null
-      thumbnail_url: string | null
-      price: number
-      level: string
-      created_at: string
-      instructor: { id: string; display_name: string } | null
-    }> | null };
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Fetch all data in parallel
+  const [courses, user, categories] = await Promise.all([getAllCourses(), getCurrentUser(), getAllCategories()]);
 
   // If user is logged in, get their enrollments
   let enrolledCourseIds: string[] = [];
   if (user) {
-    const { data: enrollments } = await supabase.from("enrollments").select("course_id").eq("student_id", user.id);
-    enrolledCourseIds = enrollments?.map((e) => e.course_id) || [];
+    enrolledCourseIds = await getEnrolledCourseIds(user.id);
   }
 
-  return (
-    <div className="min-h-screen bg-background">
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">주짓수 강의</h1>
-          <p className="text-muted-foreground">전문 강사의 고품질 주짓수 강의를 만나보세요</p>
-        </div>
+  // 실제 강의가 없으면 더미 데이터 사용 (강의와 카테고리 세트로)
+  const useDummyData = courses.length === 0;
+  const displayCourses = useDummyData ? DUMMY_COURSES : courses;
+  const displayCategories = useDummyData ? DUMMY_CATEGORIES : categories;
 
-        {!courses || courses.length === 0 ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>아직 등록된 강의가 없습니다</CardTitle>
-              <CardDescription>곧 새로운 강의가 추가될 예정입니다</CardDescription>
-            </CardHeader>
-          </Card>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {courses.map((course) => {
-              const isEnrolled = enrolledCourseIds.includes(course.id);
-              return (
-                <Card key={course.id} className="flex flex-col">
-                  <CardHeader>
-                    {course.thumbnail_url && (
-                      <div className="relative w-full h-48 mb-4">
-                        <Image
-                          src={course.thumbnail_url}
-                          alt={course.title}
-                          fill
-                          className="object-cover rounded-lg"
-                          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                        />
-                      </div>
-                    )}
-                    <div className="flex items-start justify-between gap-2">
-                      <CardTitle className="line-clamp-1">{course.title}</CardTitle>
-                      {isEnrolled && <Badge>수강중</Badge>}
-                    </div>
-                    <CardDescription className="line-clamp-2">{course.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex-1 flex flex-col gap-2">
-                    <div className="text-sm space-y-1">
-                      <p className="text-muted-foreground">강사: {course.instructor?.display_name}</p>
-                      <p className="text-muted-foreground">
-                        레벨: {course.level === "beginner" ? "초급" : course.level === "intermediate" ? "중급" : "고급"}
-                      </p>
-                      <p className="font-semibold text-lg">{course.price.toLocaleString()}원</p>
-                    </div>
-                    <div className="mt-auto pt-4">
-                      {isEnrolled ? (
-                        <Button asChild className="w-full">
-                          <Link href={`/student/courses/${course.id}`}>학습하기</Link>
-                        </Button>
-                      ) : (
-                        <Button asChild className="w-full" variant={user ? "default" : "outline"}>
-                          <Link href={user ? `/courses/${course.id}` : "/auth/login"}>
-                            {user ? "자세히 보기" : "로그인하고 구매하기"}
-                          </Link>
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+  return (
+    <div className="min-h-screen bg-background overflow-x-hidden">
+      <main className="container mx-auto px-4 py-8">
+        <FadeInSection>
+          <div className="mb-8">
+            <h1 className="font-heading text-2xl mb-2">COURSES</h1>
+            <p className="text-muted-foreground">전문 강사의 고품질 주짓수 강의를 만나보세요</p>
           </div>
-        )}
+        </FadeInSection>
+
+        <FadeInSection delay={150}>
+          <CoursesList
+            courses={displayCourses}
+            categories={displayCategories}
+            enrolledCourseIds={enrolledCourseIds}
+            isLoggedIn={!!user}
+          />
+        </FadeInSection>
       </main>
     </div>
   );

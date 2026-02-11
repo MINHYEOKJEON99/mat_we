@@ -6,7 +6,22 @@
       "Bash(npm install:*)",
       "Bash(npm ls:*)",
       "Bash(find:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(grep:*)",
+      "Bash(cat:*)",
+      "Bash(curl:*)",
+      "Bash(npm run email:dev:*)",
+      "Bash(npx email:*)",
+      "Bash(npx tsc:*)",
+      "Bash(xargs:*)",
+      "mcp__plugin_claude-mem_mem-search__search",
+      "WebFetch(domain:postcode.map.daum.net)",
+      "mcp__ide__getDiagnostics",
+      "Bash(ls:*)",
+      "Bash(npm view:*)",
+      "WebSearch",
+      "WebFetch(domain:vidstack.io)",
+      "Bash(python3:*)"
     ]
   }
 }

@@ -1,33 +1,24 @@
-import { createClient } from "@/lib/server"
-import { redirect } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import Link from "next/link"
+import { redirect } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { requireAuth, getProfileById, getPTSessionsByInstructor } from "@/lib/api/server";
+import { MapPin, Clock, Calendar } from "lucide-react";
+import { SessionActions } from "@/components/pt";
+import { PTSessionCalendarView } from "./calendar-view";
 
 export default async function InstructorPTSessionsPage() {
-  const supabase = await createClient()
+  const user = await requireAuth();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect("/auth/login")
-  }
-
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single()
+  const profile = await getProfileById(user.id);
 
   if (!profile || profile.role !== "instructor") {
-    redirect("/dashboard")
+    redirect("/dashboard");
   }
 
   // Get PT sessions with student information
-  const { data: sessions } = await supabase
-    .from("pt_sessions")
-    .select("*, student:profiles!pt_sessions_student_id_fkey(*)")
-    .eq("instructor_id", user.id)
-    .order("created_at", { ascending: false })
+  const sessions = await getPTSessionsByInstructor(user.id);
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -35,15 +26,17 @@ export default async function InstructorPTSessionsPage() {
       confirmed: "default",
       completed: "outline",
       cancelled: "destructive",
-    }
+    };
     const labels: Record<string, string> = {
       pending: "대기중",
       confirmed: "확정",
       completed: "완료",
       cancelled: "취소됨",
-    }
-    return <Badge variant={variants[status]}>{labels[status]}</Badge>
-  }
+    };
+    return <Badge variant={variants[status]}>{labels[status]}</Badge>;
+  };
+
+  const confirmedSessions = sessions?.filter((s) => s.status === "confirmed") || [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -63,6 +56,13 @@ export default async function InstructorPTSessionsPage() {
           <h1 className="text-3xl font-bold mb-2">PT 세션 관리</h1>
           <p className="text-muted-foreground">수강생의 PT 요청을 확인하고 관리하세요</p>
         </div>
+
+        {/* Calendar View */}
+        {confirmedSessions.length > 0 && (
+          <div className="mb-8">
+            <PTSessionCalendarView sessions={confirmedSessions} />
+          </div>
+        )}
 
         {!sessions || sessions.length === 0 ? (
           <Card>
@@ -89,21 +89,41 @@ export default async function InstructorPTSessionsPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2 text-sm">
-                    <p>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
                       <span className="font-medium">시간:</span> {session.duration}분
-                    </p>
-                    <p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
                       <span className="font-medium">금액:</span> {session.price.toLocaleString()}원
-                    </p>
+                    </div>
+                    {session.location && (
+                      <div className="flex items-start gap-2">
+                        <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                        <div>
+                          <span className="font-medium">장소:</span> {session.location}
+                          {session.location_detail && (
+                            <span className="text-muted-foreground ml-1">
+                              ({session.location_detail})
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
                     {session.notes && (
                       <p>
                         <span className="font-medium">요청사항:</span> {session.notes}
                       </p>
                     )}
                   </div>
-                  <div className="mt-4">
-                    <Button asChild className="w-full">
+                  <div className="mt-4 space-y-3">
+                    <SessionActions
+                      sessionId={session.id}
+                      currentStatus={session.status}
+                      sessions={sessions}
+                    />
+                    <Button asChild className="w-full" variant="outline">
                       <Link href={`/chat/${session.id}`}>채팅하기</Link>
                     </Button>
                   </div>
@@ -114,5 +134,5 @@ export default async function InstructorPTSessionsPage() {
         )}
       </main>
     </div>
-  )
+  );
 }

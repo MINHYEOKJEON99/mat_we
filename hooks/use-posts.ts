@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { createClient } from "@/lib/client"
 import type { CommunityPost, PostComment, PostLike } from "@/lib/database"
+import { supabaseInsert, supabaseDelete } from "@/lib/api/client/supabase-rest"
 
 export const postKeys = {
   all: ["posts"] as const,
@@ -86,7 +87,7 @@ export function useAuthorPosts(authorId: string | undefined) {
   })
 }
 
-// 게시글 댓글 목록
+// 게시글 댓글 목록 (대댓글 포함)
 export function usePostComments(postId: string | undefined) {
   const supabase = createClient()
 
@@ -107,9 +108,15 @@ export function usePostComments(postId: string | undefined) {
         .order("created_at", { ascending: true })
 
       if (error) throw error
-      return data as (PostComment & { author: { id: string; display_name: string; avatar_url: string | null } })[]
+      return data as (PostComment & {
+        author: { id: string; display_name: string; avatar_url: string | null }
+        parent_id?: string | null
+      })[]
     },
     enabled: !!postId,
+    staleTime: 1000 * 60,
+    refetchOnMount: "always",
+    placeholderData: [],
   })
 }
 
@@ -210,21 +217,19 @@ export function useDeletePost() {
   })
 }
 
-// 댓글 작성
+// 댓글 작성 (대댓글 지원)
 export function useCreateComment() {
-  const supabase = createClient()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (data: { post_id: string; author_id: string; content: string }) => {
-      const { data: result, error } = await supabase
-        .from("post_comments")
-        .insert(data)
-        .select()
-        .single<PostComment>()
+    mutationFn: async (data: { post_id: string; author_id: string; content: string; parent_id?: string | null }) => {
+      const result = await supabaseInsert<PostComment>("post_comments", data)
 
-      if (error) throw error
-      return result
+      if (!result || result.length === 0) {
+        throw new Error("댓글 작성에 실패했습니다")
+      }
+
+      return result[0]
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: postKeys.comments(data.post_id) })
@@ -235,17 +240,11 @@ export function useCreateComment() {
 
 // 댓글 삭제
 export function useDeleteComment() {
-  const supabase = createClient()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async ({ commentId, postId }: { commentId: string; postId: string }) => {
-      const { error } = await supabase
-        .from("post_comments")
-        .delete()
-        .eq("id", commentId)
-
-      if (error) throw error
+      await supabaseDelete("post_comments", `id=eq.${commentId}`)
       return { commentId, postId }
     },
     onSuccess: (data) => {
@@ -257,27 +256,16 @@ export function useDeleteComment() {
 
 // 좋아요 토글
 export function useToggleLike() {
-  const supabase = createClient()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async ({ postId, userId, isLiked }: { postId: string; userId: string; isLiked: boolean }) => {
       if (isLiked) {
         // 좋아요 취소
-        const { error } = await supabase
-          .from("post_likes")
-          .delete()
-          .eq("post_id", postId)
-          .eq("user_id", userId)
-
-        if (error) throw error
+        await supabaseDelete("post_likes", `post_id=eq.${postId}&user_id=eq.${userId}`)
       } else {
         // 좋아요 추가
-        const { error } = await supabase
-          .from("post_likes")
-          .insert({ post_id: postId, user_id: userId })
-
-        if (error) throw error
+        await supabaseInsert("post_likes", { post_id: postId, user_id: userId })
       }
 
       return { postId, userId, isLiked: !isLiked }

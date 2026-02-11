@@ -1,6 +1,9 @@
 // Auth hooks
 export * from "./use-auth"
 
+// User hooks
+export * from "./use-user"
+
 // Profile hooks
 export * from "./use-profile"
 
@@ -15,3 +18,6 @@ export * from "./use-enrollments"
 
 // PT Session hooks
 export * from "./use-pt-sessions"
+
+// Direct Message hooks
+export * from "./use-direct-messages"
